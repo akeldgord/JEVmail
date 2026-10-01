@@ -18,7 +18,6 @@ test('parseEnv applies defaults', () => {
     JEV_MODEL: 'jev-1.13.0', APP_ENCRYPTION_KEY: 'b'.repeat(32)
   });
   assert.equal(result.success, true);
-  if (!result.success) throw result.error;
   assert.equal(result.data.JEV_BASE_URL, 'https://jevmodel.org');
   assert.equal(result.data.POLL_INTERVAL_SECONDS, 60);
   assert.equal(result.data.MAX_PER_MINUTE, 30);
