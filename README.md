@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/jevmail-hero.svg" alt="JEVmail; Your inbox, organized by what you need to do next" width="100%">
+  <img src="./docs/assets/jevmail-hero-v2.svg" alt="JEVmail; Your inbox, organized by what you need to do next" width="100%">
 </p>
 
 <p align="center">
