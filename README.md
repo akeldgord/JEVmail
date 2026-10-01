@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/jevmail-hero.svg" alt="JEVmail — Your inbox, organized by what you need to do next" width="100%">
+  <img src="./docs/assets/jevmail-hero.svg" alt="JEVmail; Your inbox, organized by what you need to do next" width="100%">
 </p>
 
 <p align="center">
@@ -17,8 +17,7 @@
 </p>
 
 <p align="center">
-  A privacy-first, self-hosted Gmail triage engine powered by bounded classification.
-  One message in. One practical handling label out.
+  A self-hosted Gmail classifier that assigns one practical handling label to each eligible message.
 </p>
 
 ---
@@ -29,11 +28,11 @@ A hotel confirmation and a hotel asking you to confirm your arrival time are bot
 
 But only one needs a reply.
 
-JEVmail ignores that topic-level similarity and asks a more useful question:
+JEVmail asks a different question:
 
 > **What should the user need to do with this email?**
 
-That produces an inbox organized around **handling**, not subject matter.
+The result is an inbox organized around **handling**, not subject matter.
 
 | Email | JEVmail label | Why |
 | --- | --- | --- |
@@ -58,7 +57,7 @@ That means a reservation asking a real question becomes **Reply Needed**, and an
 | --- | --- |
 | **Handling-first** | Classifies by the next thing you need to do, not by topic. |
 | **Exactly once** | A durable Gmail marker prevents completed messages from being classified again. |
-| **One label per message** | No overlapping piles of AI-generated tags. |
+| **One label per message** | No overlapping classifier labels. |
 | **Privacy-first** | Email bodies, thread text, attachments, and classifier payloads are not persisted locally. |
 | **Labels only** | v1 does not archive, delete, forward, mark read, or move your mail. |
 | **Auditable** | Decisions, probabilities, configuration version, corrections, and usage metadata are inspectable. |
@@ -172,13 +171,13 @@ Quoted chains, obvious signatures, HTML noise, and redundant whitespace are stri
 
 Attachment contents are **not** inspected in v1.
 
-If the available context is not enough to make a defensible bounded choice, **Indeterminate** is the intended outcome.
+If the available context is insufficient, the classifier should return **Indeterminate**.
 
 ---
 
 ## Dashboard
 
-JEVmail includes a small operational dashboard rather than treating the classifier as a black box.
+JEVmail includes an operational dashboard for reviewing classifier behavior and processing state.
 
 ### Overview
 Processing health, classifications today, correction rate, usage, backlog state, last poll, and recent categorized errors.
@@ -204,7 +203,7 @@ Manual corrections change the Gmail label and preserve an audit trail. They do *
 
 ## New mail by default
 
-JEVmail does not start by chewing through your historical Inbox.
+JEVmail does not process your historical Inbox by default.
 
 On initial setup it records a startup watermark and processes only eligible Inbox messages arriving after that point.
 
@@ -216,9 +215,9 @@ Historical mail is handled through an explicit **Clear Backlog** workflow:
 - custom range
 - entire current Inbox
 
-Backlog jobs can be paused, resumed, or cancelled and use the same rate/spend controls as normal processing.
+Backlog jobs can be paused, resumed, or cancelled. They use the same rate and spend controls as normal processing.
 
-JEVmail estimates eligible messages and expected usage before starting. If reliable provider cost metadata is unavailable, it says so rather than inventing a dollar estimate.
+JEVmail estimates eligible messages and expected usage before starting. If reliable provider cost metadata is unavailable, cost is reported as unavailable.
 
 ---
 
@@ -245,7 +244,7 @@ JEVmail is a modular TypeScript monolith packaged as one image with two processe
           Gmail API            Jev API
 ```
 
-External systems sit behind adapters, so Gmail ingestion and dashboard logic are not tightly coupled to one classifier provider.
+External systems sit behind adapters. Gmail ingestion and dashboard logic are not tied to one classifier provider.
 
 Runtime persistence currently uses Node's built-in SQLite API with explicit repositories. Drizzle tooling remains in the project as a possible future migration path.
 
@@ -357,13 +356,13 @@ Deleting the local database does not remove Gmail labels already applied to mess
 
 Minute and hour limits are rolling. Daily count/spend resets on the UTC day boundary.
 
-The optional spend ceiling is enforced only when reliable provider cost metadata is available.
+The spend ceiling is enforced only when reliable provider cost metadata is available.
 
 ---
 
 ## Classifier configuration
 
-The classifier contract is provider-neutral:
+Classifier contract:
 
 > normalized email context + enabled taxonomy → one bounded label + probabilities/confidence/usage
 
@@ -429,9 +428,9 @@ JEVmail v1 does **not**:
 - automatically reclassify completed messages
 - operate as a multi-user hosted SaaS
 
-Those are constraints, not missing buttons.
+These are deliberate v1 constraints.
 
-The goal of v1 is to make one classification decision **useful, inspectable, inexpensive, and safe** before automating anything downstream.
+The goal of v1 is to make the classification step useful, inspectable, and safe before automating downstream actions.
 
 ---
 
@@ -448,9 +447,9 @@ The goal of v1 is to make one classification decision **useful, inspectable, ine
 
 ## Status
 
-JEVmail is early software, but its core safety and processing invariants are covered by automated tests.
+JEVmail is early software. Its core processing and safety invariants are covered by automated tests.
 
-Current CI verifies:
+CI verifies:
 
 - dependency installation
 - lint
