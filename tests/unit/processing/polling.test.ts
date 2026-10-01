@@ -32,7 +32,7 @@ test('pause and reconnect-required states keep poller alive without processor wo
 });
 
 test('paginates eligible inbox mail and stops cleanly when processing is deferred', async () => {
-  const queries:any[]=[]; let processed:string[]=[];
+  const queries:any[]=[]; const processed:string[]=[];
   const repos:any={installation:{get(){return{startupWatermarkMs:2_000_000,processedLabelId:'processed',paused:false,needsReconnect:false};}}};
   const gmail:any={async listMessages(q:any){queries.push(q); if(!q.pageToken)return{messages:[{id:'m1',threadId:'t1'},{id:'m2',threadId:'t2'}],nextPageToken:'p2'}; return{messages:[{id:'m3',threadId:'t3'}]};}};
   const processor:any={async processMessage(id:string){processed.push(id); return id==='m2'?'deferred':'processed';}};
