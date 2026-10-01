@@ -1,83 +1,59 @@
-<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="420" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#07111F"/>
-      <stop offset="0.55" stop-color="#0E1830"/>
-      <stop offset="1" stop-color="#15102A"/>
-    </linearGradient>
-    <linearGradient id="brand" x1="152" y1="78" x2="461" y2="193" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7DD3FC"/>
-      <stop offset="0.48" stop-color="#818CF8"/>
-      <stop offset="1" stop-color="#C084FC"/>
-    </linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="32"/>
-    </filter>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
-      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.35"/>
-    </filter>
-  </defs>
+<svg width="1200" height="400" viewBox="0 0 1200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="400" rx="24" fill="#0B0D10"/>
+  <rect x="1" y="1" width="1198" height="398" rx="23" stroke="#24282C"/>
 
-  <rect width="1200" height="420" rx="28" fill="url(#bg)"/>
-  <circle cx="240" cy="60" r="150" fill="#4F46E5" fill-opacity="0.18" filter="url(#glow)"/>
-  <circle cx="1050" cy="360" r="190" fill="#9333EA" fill-opacity="0.14" filter="url(#glow)"/>
+  <g transform="translate(64 58)">
+    <rect x="0" y="0" width="54" height="54" rx="12" fill="#2563EB"/>
+    <path d="M14 18H40V37H14V18Z" stroke="#FFFFFF" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M14 20L27 30L40 20" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <g transform="translate(72 70)">
-    <rect x="0" y="4" width="64" height="64" rx="18" fill="url(#brand)"/>
-    <path d="M17 22H47V46H17V22Z" stroke="#08111F" stroke-width="3.4" stroke-linejoin="round"/>
-    <path d="M17 24L32 36L47 24" stroke="#08111F" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="72" y="43" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="48" font-weight="760" fill="#F4F4F5" letter-spacing="-1.5">JEVmail</text>
 
-    <text x="88" y="56" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="66" font-weight="800" fill="url(#brand)" letter-spacing="-2">JEVmail</text>
-    <text x="0" y="126" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="650" fill="#F8FAFC">Your inbox, organized by what you need to do next.</text>
-    <text x="0" y="168" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" fill="#AAB8CF">Self-hosted Gmail triage by required handling — not topic.</text>
+    <text x="0" y="116" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="720" fill="#F4F4F5" letter-spacing="-0.8">Sort email by what</text>
+    <text x="0" y="158" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34" font-weight="720" fill="#F4F4F5" letter-spacing="-0.8">you need to do next.</text>
 
-    <g transform="translate(0 216)">
-      <rect width="178" height="42" rx="21" fill="#17233A" stroke="#2A3B58"/>
-      <circle cx="23" cy="21" r="6" fill="#38BDF8"/>
-      <text x="39" y="27" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="650" fill="#DCE7F7">Exactly once</text>
+    <text x="0" y="202" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="17" fill="#A1A1AA">Self-hosted Gmail triage based on required handling, not topic.</text>
 
-      <rect x="192" width="176" height="42" rx="21" fill="#17233A" stroke="#2A3B58"/>
-      <circle cx="215" cy="21" r="6" fill="#818CF8"/>
-      <text x="231" y="27" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="650" fill="#DCE7F7">Privacy first</text>
+    <g transform="translate(0 246)">
+      <circle cx="5" cy="6" r="5" fill="#10B981"/>
+      <text x="19" y="11" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" fill="#D4D4D8">Exactly-once classification</text>
 
-      <rect x="382" width="174" height="42" rx="21" fill="#17233A" stroke="#2A3B58"/>
-      <circle cx="405" cy="21" r="6" fill="#C084FC"/>
-      <text x="421" y="27" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="650" fill="#DCE7F7">Labels only</text>
+      <circle cx="214" cy="6" r="5" fill="#2563EB"/>
+      <text x="228" y="11" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" fill="#D4D4D8">One handling label</text>
+
+      <circle cx="390" cy="6" r="5" fill="#F59E0B"/>
+      <text x="404" y="11" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" fill="#D4D4D8">Labels only</text>
     </g>
   </g>
 
-  <g transform="translate(726 54)" filter="url(#shadow)">
-    <rect width="404" height="312" rx="24" fill="#0D1728" stroke="#263755"/>
-    <text x="24" y="38" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" fill="#7C8DA8" letter-spacing="1.2">REQUIRED HANDLING</text>
+  <g transform="translate(710 48)">
+    <rect width="430" height="304" rx="16" fill="#121416" stroke="#2B3035"/>
+    <text x="24" y="36" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="650" fill="#E4E4E7">Required handling</text>
+    <text x="24" y="58" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#71717A">Priority first, then best-fit classification</text>
 
-    <g transform="translate(22 60)">
-      <rect width="360" height="56" rx="14" fill="#13253A" stroke="#2F5874"/>
-      <circle cx="27" cy="28" r="9" fill="#38BDF8"/>
-      <text x="50" y="24" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="750" fill="#EAF7FF">Reply Needed</text>
-      <text x="50" y="43" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#8FB2C8">“Can you confirm the reservation time?”</text>
-      <text x="321" y="34" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="800" fill="#38BDF8">1</text>
+    <g transform="translate(20 80)">
+      <rect width="390" height="62" rx="10" fill="#101D24" stroke="#1F4A5B"/>
+      <rect x="0" y="0" width="4" height="62" rx="2" fill="#38BDF8"/>
+      <text x="20" y="25" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15.5" font-weight="700" fill="#E7F7FF">1  Reply Needed</text>
+      <text x="20" y="46" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#9CC5D6">Can you confirm your arrival time?</text>
     </g>
 
-    <g transform="translate(22 126)">
-      <rect width="360" height="56" rx="14" fill="#171F3A" stroke="#3B4678"/>
-      <circle cx="27" cy="28" r="9" fill="#818CF8"/>
-      <text x="50" y="24" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="750" fill="#F0F2FF">Action Needed</text>
-      <text x="50" y="43" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#9FAAE0">“Your invoice is due Friday.”</text>
-      <text x="321" y="34" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="800" fill="#818CF8">2</text>
+    <g transform="translate(20 152)">
+      <rect width="390" height="62" rx="10" fill="#111A2A" stroke="#2B416B"/>
+      <rect x="0" y="0" width="4" height="62" rx="2" fill="#60A5FA"/>
+      <text x="20" y="25" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15.5" font-weight="700" fill="#EAF2FF">2  Action Needed</text>
+      <text x="20" y="46" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#A9BBDD">Your invoice is due Friday.</text>
     </g>
 
-    <path d="M50 204H354" stroke="#25344E" stroke-width="1.5" stroke-dasharray="5 6"/>
-    <text x="24" y="228" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="700" fill="#66758F" letter-spacing="0.7">THEN CLASSIFY BY BEST-FIT HANDLING</text>
+    <path d="M24 232H406" stroke="#2B3035"/>
 
-    <g transform="translate(22 246)">
-      <rect width="108" height="34" rx="17" fill="#241934" stroke="#523867"/>
-      <text x="18" y="22" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" font-weight="650" fill="#D8B4FE">Receipt</text>
-
-      <rect x="116" width="108" height="34" rx="17" fill="#1A2532" stroke="#37475A"/>
-      <text x="133" y="22" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" font-weight="650" fill="#C7D2E0">Shipping</text>
-
-      <rect x="232" width="128" height="34" rx="17" fill="#211D32" stroke="#463D62"/>
-      <text x="247" y="22" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" font-weight="650" fill="#D6CCEF">Newsletter</text>
-    </g>
+    <text x="24" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#8B949E">Then:</text>
+    <text x="69" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#D4D4D8">Receipt</text>
+    <text x="132" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#52525B">•</text>
+    <text x="149" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#D4D4D8">Shipping</text>
+    <text x="218" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#52525B">•</text>
+    <text x="235" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#D4D4D8">Newsletter</text>
+    <text x="318" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" fill="#52525B">•</text>
+    <text x="335" y="258" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#D4D4D8">Other</text>
   </g>
 </svg>
