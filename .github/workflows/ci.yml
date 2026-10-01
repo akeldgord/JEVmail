@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3000
+      AUTH_SECRET: ci-only-not-a-runtime-secret-0000000000
+      GOOGLE_CLIENT_ID: ci-client
+      GOOGLE_CLIENT_SECRET: ci-secret
+      JEVMODEL_API_KEY: ci-key
+      JEV_MODEL: jev-1.13.0
+      JEV_BASE_URL: https://jevmodel.org
+      APP_ENCRYPTION_KEY: ci-only-encryption-key-000000000000
+      DATABASE_PATH: ./data/ci.db
+      POLL_INTERVAL_SECONDS: 60
+      MAX_PER_MINUTE: 30
+      MAX_PER_HOUR: 300
+      MAX_PER_DAY: 2000
+      BACKLOG_BATCH_SIZE: 25
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Validate Compose
+        run: cp .env.example .env && docker compose config --quiet

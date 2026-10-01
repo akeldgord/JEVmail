@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createDatabase } from '../../../src/db/client.ts';
+import { createRepositories } from '../../../src/db/repositories/index.ts';
+import { MessageProcessor } from '../../../src/processing/processor.ts';
+import { DEFAULT_TAXONOMY, DEFAULT_GLOBAL_INSTRUCTIONS } from '../../../src/domain/defaults.ts';
+import { hashClassifierConfig } from '../../../src/domain/config-version.ts';
+
+test('a persisted successful attempt survives processor restart and prevents another paid inference', async () => {
+  const db = createDatabase(':memory:');
+  const repos:any = createRepositories(db);
+  const taxonomy = structuredClone(DEFAULT_TAXONOMY);
+  for (const label of taxonomy.labels) label.gmailLabelId = `gmail-${label.id}`;
+  const snapshot={provider:'jev',model:'jev-1.13.0',globalInstructions:DEFAULT_GLOBAL_INSTRUCTIONS,taxonomy};
+  const hash=hashClassifierConfig(snapshot);
+  repos.installation.upsert({accountEmail:'me@example.com',startupWatermarkMs:1,processedLabelId:'processed',paused:false,needsReconnect:false});
+  repos.config.save({hash,provider:'jev',model:'jev-1.13.0',globalInstructions:DEFAULT_GLOBAL_INSTRUCTIONS,taxonomyJson:JSON.stringify(taxonomy),createdAt:1,active:true});
+  repos.attempt.saveSuccess({messageId:'m1',configHash:hash,labelId:'reply_needed',probabilities:{reply_needed:.9},confidence:.9,provider:'jev',model:'jev-1.13.0',usage:{input_tokens:10},createdAt:2});
+  const labels=new Set<string>(['INBOX']);
+  const gmail:any={async getMessage(){return{id:'m1',threadId:'t1',labelIds:[...labels],internalDate:1};},async modifyMessage(_id:string,add:string[],remove:string[]=[]){for(const x of remove)labels.delete(x);for(const x of add)labels.add(x);}};
+  let calls=0;
+  const classifier:any={async classify(){calls++;throw new Error('must not classify');}};
+  const governor:any={async canStart(){return{allowed:true,counts:{minute:0,hour:0,day:0},spend:{status:'not_configured'}};},async recordUsage(){}};
+  const processor=new MessageProcessor({gmail,classifier,repos,governor,now:()=>3,loadContext:async()=>({current:{id:'m1',threadId:'t1',internalDate:1,timestampMs:1,labelIds:[],sender:'a',recipients:['b'],subject:'s',body:'b',attachments:[]},prior:[]})});
+  assert.equal(await processor.processMessage('m1'),'processed');
+  assert.equal(calls,0);
+  assert.equal(labels.has('processed'),true);
+  assert.equal(labels.has('gmail-reply_needed'),true);
+  db.close();
+});

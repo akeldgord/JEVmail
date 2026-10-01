@@ -1,0 +1,37 @@
+services:
+  web:
+    build: .
+    image: jevmail:local
+    command: ["npm", "start"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_PATH: /app/data/jevmail.db
+    ports:
+      - "3000:3000"
+    volumes:
+      - jevmail-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok&&!([301,302,307,308].includes(r.status)))process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    image: jevmail:local
+    command: ["npm", "run", "worker"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_PATH: /app/data/jevmail.db
+    volumes:
+      - jevmail-data:/app/data
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  jevmail-data:

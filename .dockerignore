@@ -1,0 +1,11 @@
+.git
+.worktrees
+.superpowers
+.next
+node_modules
+data
+.env
+*.db
+*.db-shm
+*.db-wal
+*.tsbuildinfo
