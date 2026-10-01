@@ -1,0 +1,6 @@
+export function normalizeGoogleEmail(email:string){return email.trim().toLowerCase();}
+export function assertBoundAccount(bound:string, candidate:string){if(normalizeGoogleEmail(bound)!==normalizeGoogleEmail(candidate)) throw new Error('This JEVmail instance is bound to a different Google account.');}
+export function connectionState(i:{accountEmail:string;encryptedRefreshToken?:string|null}){return i.encryptedRefreshToken ? 'connected' : 'needsReconnect';}
+export function assertOperationalAccount(i:{accountEmail:string;encryptedRefreshToken?:string|null;needsReconnect?:boolean},candidate:string){assertBoundAccount(i.accountEmail,candidate);if(i.needsReconnect||!i.encryptedRefreshToken)throw new Error('Gmail authorization requires reconnect.');}
+export type DashboardAccessState='sign_in'|'account_mismatch'|'needs_reconnect'|'connected';
+export function dashboardAccessState(sessionEmail:string|null|undefined,i:{accountEmail:string;encryptedRefreshToken?:string|null;needsReconnect?:boolean}|null):DashboardAccessState{if(!sessionEmail)return'sign_in';if(!i)return'needs_reconnect';if(normalizeGoogleEmail(i.accountEmail)!==normalizeGoogleEmail(sessionEmail))return'account_mismatch';if(i.needsReconnect||!i.encryptedRefreshToken)return'needs_reconnect';return'connected';}

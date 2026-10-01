@@ -1,0 +1,3 @@
+import type { GmailClient } from '../gmail/types.ts';
+import { normalizeGmailMessage } from '../gmail/normalize-message.ts';
+export class TriageService{constructor(privateOptions:{gmail:GmailClient;repos:any}){this.gmail=privateOptions.gmail;this.repos=privateOptions.repos;}private readonly gmail:GmailClient;private readonly repos:any;listRecent(limit=100){return this.repos.audit.list(limit);}async getLiveMessage(messageId:string){return normalizeGmailMessage(await this.gmail.getMessage(messageId));}auditFor(messageId:string){return{classification:this.repos.audit.get(messageId),corrections:this.repos.audit.listCorrections(messageId)};}}

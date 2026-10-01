@@ -1,0 +1,4 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+function keyBytes(secret:string){return createHash('sha256').update(secret,'utf8').digest();}
+export function encryptSecret(plain:string, secret:string):string { const iv=randomBytes(12); const cipher=createCipheriv('aes-256-gcm',keyBytes(secret),iv); const ciphertext=Buffer.concat([cipher.update(plain,'utf8'),cipher.final()]); const tag=cipher.getAuthTag(); return [iv,tag,ciphertext].map(b=>b.toString('base64url')).join('.'); }
+export function decryptSecret(encoded:string, secret:string):string { const [ivS,tagS,dataS]=encoded.split('.'); if(!ivS||!tagS||!dataS) throw new Error('invalid encrypted secret'); const dec=createDecipheriv('aes-256-gcm',keyBytes(secret),Buffer.from(ivS,'base64url')); dec.setAuthTag(Buffer.from(tagS,'base64url')); return Buffer.concat([dec.update(Buffer.from(dataS,'base64url')),dec.final()]).toString('utf8'); }

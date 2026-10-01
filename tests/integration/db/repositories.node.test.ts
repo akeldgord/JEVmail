@@ -1,0 +1,30 @@
+import test from 'node:test'; import assert from 'node:assert/strict';
+import { createDatabase } from '../../../src/db/client.ts';
+import { createRepositories } from '../../../src/db/repositories/index.ts';
+
+test('repositories round-trip installation, config, attempts, audits, corrections, backlog, usage', () => {
+  const db = createDatabase(':memory:');
+  const r = createRepositories(db);
+  r.installation.upsert({accountEmail:'me@example.com',startupWatermarkMs:123,processedLabelId:'p',paused:false,needsReconnect:false});
+  assert.equal(r.installation.get()?.accountEmail,'me@example.com');
+  r.config.save({hash:'h1',provider:'jev',model:'jev-1.13.0',globalInstructions:'x',taxonomyJson:'{}',createdAt:1,active:true});
+  assert.equal(r.config.getActive()?.hash,'h1');
+  r.attempt.saveSuccess({messageId:'m1',configHash:'h1',labelId:'fyi_no_action',probabilities:{fyi_no_action:.9},confidence:.9,provider:'jev',model:'jev-1.13.0',usage:{input_tokens:10},createdAt:2});
+  assert.equal(r.attempt.getSuccessful('m1')?.labelId,'fyi_no_action');
+  r.audit.complete({messageId:'m1',threadId:'t1',labelId:'fyi_no_action',configHash:'h1',confidence:.9,probabilities:{fyi_no_action:.9},provider:'jev',model:'jev-1.13.0',usage:{input_tokens:10},processedAt:3});
+  assert.equal(r.audit.get('m1')?.labelId,'fyi_no_action');
+  assert.equal('subject' in (r.audit.get('m1')??{}),false);
+  assert.equal('sender' in (r.audit.get('m1')??{}),false);
+  r.audit.addCorrection({messageId:'m1',fromLabelId:'fyi_no_action',toLabelId:'receipt_record',correctedAt:4});
+  assert.equal(r.audit.listCorrections('m1').length,1);
+  const job=r.backlog.create({rangeJson:'{}',status:'pending',total:5,processed:0,failed:0,createdAt:5,updatedAt:5});
+  r.backlog.update(job.id,{status:'paused',processed:1,updatedAt:6});
+  assert.equal(r.backlog.get(job.id)?.status,'paused');
+  r.backlog.addFailure(job.id,'m-bad','permanent',6);
+  assert.deepEqual(r.backlog.listFailureIds(job.id),['m-bad']);
+  r.usage.add({kind:'classification',inputTokens:10,costCents:2,createdAt:7});
+  assert.equal(r.usage.listSince(0).length,1);
+  r.error.add({stage:'poll',category:'gmail_auth',messageId:null,createdAt:8});
+  assert.equal(r.error.list(5)[0]?.category,'gmail_auth');
+  assert.equal(r.config.listAll().length,1);
+});

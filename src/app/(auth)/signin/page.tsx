@@ -1,0 +1,1 @@
+'use client'; import { signIn } from 'next-auth/react'; export default function SignIn(){return <main style={{maxWidth:520,margin:'100px auto',padding:24}}><h1>Sign in to JEVmail</h1><p>Use the Google account whose Gmail inbox you want JEVmail to classify.</p><button onClick={()=>signIn('google',{callbackUrl:'/dashboard'})}>Continue with Google</button></main>;}

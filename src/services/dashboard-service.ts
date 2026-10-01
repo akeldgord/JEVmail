@@ -1,0 +1,7 @@
+export function buildDashboardOverview(repos:any,now=Date.now()){
+  const d=new Date(now);const dayStart=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+  const audits=(repos.audit.list(5000)??[]).filter((x:any)=>x.processedAt>=dayStart&&x.processedAt<=now);let correctionsToday=0;for(const a of audits)correctionsToday+=(repos.audit.listCorrections(a.messageId)??[]).filter((c:any)=>c.correctedAt==null||c.correctedAt>=dayStart).length;
+  const usage=(repos.usage.listSince(dayStart)??[]).filter((x:any)=>x.kind==='classification'&&x.createdAt<=now);const inputTokensToday=usage.reduce((n:number,x:any)=>n+(typeof x.inputTokens==='number'?x.inputTokens:0),0);const costsKnown=usage.every((x:any)=>typeof x.costCents==='number');const spendCentsToday=costsKnown?usage.reduce((n:number,x:any)=>n+x.costCents,0):null;
+  const jobs=repos.backlog.list?.(20)??[];const active=jobs.find((x:any)=>['pending','running','paused'].includes(x.status));const installation=repos.installation.get();const recentErrors=repos.error?.list?.(10)??[];
+  return{processingStatus:installation?.needsReconnect?'needs_reconnect':installation?.paused?'paused':'running',classificationsToday:audits.length,correctionsToday,correctionRate:audits.length?correctionsToday/audits.length:0,inputTokensToday,spendCentsToday,spendAvailable:costsKnown,pendingBacklog:active?Math.max(0,active.total-active.processed-active.failed):0,failedBacklog:active?.failed??0,lastPollAt:installation?.lastPollAt??null,lastPollStatus:installation?.lastPollStatus??null,recentErrors};
+}
