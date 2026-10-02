@@ -39,8 +39,8 @@ export function createRepositories(db: AppDatabase) {
     listSince(ms:number){return db.prepare('SELECT kind,input_tokens as inputTokens,cost_cents as costCents,created_at as createdAt FROM usage_events WHERE created_at>=? ORDER BY created_at').all(ms) as any[];}
   };
   const error={
-    add(x:any){db.prepare('INSERT INTO processing_errors(stage,category,message_id,created_at) VALUES(?,?,?,?)').run(x.stage,x.category,x.messageId??null,x.createdAt);},
-    list(limit=20){return db.prepare('SELECT stage,category,message_id as messageId,created_at as createdAt FROM processing_errors ORDER BY created_at DESC LIMIT ?').all(limit) as any[];}
+    add(x:any){db.prepare('INSERT INTO processing_errors(stage,category,provider,status,detail,message_id,created_at) VALUES(?,?,?,?,?,?,?)').run(x.stage,x.category,x.provider??null,x.status??null,x.detail??null,x.messageId??null,x.createdAt);},
+    list(limit=20){return db.prepare('SELECT stage,category,provider,status,detail,message_id as messageId,created_at as createdAt FROM processing_errors ORDER BY created_at DESC LIMIT ?').all(limit) as any[];}
   };
   return {installation,config,attempt,audit,backlog,usage,error};
 }

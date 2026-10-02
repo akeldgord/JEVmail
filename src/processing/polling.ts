@@ -1,6 +1,6 @@
 import type { GmailClient } from '../gmail/types.ts';
 import type { MessageProcessor, ProcessOutcome } from './processor.ts';
-import { requiresGmailReconnect } from './retry-policy.ts';
+import { describeOperationalError, isGmailQuotaError, requiresGmailReconnect } from './retry-policy.ts';
 
 export type PollStatus = 'ok' | 'paused' | 'needs_reconnect' | 'deferred' | 'not_ready';
 export type PollResult = { status: PollStatus; examined: number; processed: number; failures: number };
@@ -22,7 +22,20 @@ export class PollingService {
     do {
       let page;
       try{page=await this.gmail.listMessages({q:buildIncomingQuery(installation.startupWatermarkMs),labelIds:['INBOX'],pageToken,maxResults:100});}
-      catch(error){if(requiresGmailReconnect(error)){this.repos.installation.patch?.({needsReconnect:true});this.repos.error?.add({stage:'poll',category:'gmail_auth',messageId:null,createdAt:this.now()});return finish({status:'needs_reconnect',examined,processed,failures});}throw error;}
+      catch(error){
+        const details=describeOperationalError(error);
+        if(requiresGmailReconnect(error)){
+          this.repos.installation.patch?.({needsReconnect:true});
+          this.repos.error?.add({stage:'poll',category:'gmail_auth',provider:details.provider,status:details.status,detail:details.detail,messageId:null,createdAt:this.now()});
+          return finish({status:'needs_reconnect',examined,processed,failures});
+        }
+        if(isGmailQuotaError(error)){
+          this.repos.error?.add({stage:'poll',category:'gmail_quota',provider:'gmail',status:details.status,detail:details.detail,messageId:null,createdAt:this.now()});
+          return finish({status:'deferred',examined,processed,failures});
+        }
+        this.repos.error?.add({stage:'poll',category:'transient',provider:details.provider,status:details.status,detail:details.detail,messageId:null,createdAt:this.now()});
+        throw error;
+      }
       for(const message of page.messages){
         examined++;const outcome:ProcessOutcome=await this.processor.processMessage(message.id);
         if(this.repos.installation.get()?.needsReconnect)return finish({status:'needs_reconnect',examined,processed,failures:failures+1});

@@ -22,7 +22,7 @@ export function parseEnv(input: Record<string, string | undefined>): EnvParseRes
     APP_URL: input.APP_URL!, AUTH_SECRET: input.AUTH_SECRET!, GOOGLE_CLIENT_ID: input.GOOGLE_CLIENT_ID!,
     GOOGLE_CLIENT_SECRET: input.GOOGLE_CLIENT_SECRET!, JEVMODEL_API_KEY: input.JEVMODEL_API_KEY!,
     JEV_MODEL: input.JEV_MODEL!, APP_ENCRYPTION_KEY: input.APP_ENCRYPTION_KEY!,
-    JEV_BASE_URL: input.JEV_BASE_URL?.trim() || 'https://jevmodel.org',
+    JEV_BASE_URL: input.JEV_BASE_URL?.trim() || 'https://api.typesafe.ai',
     DATABASE_PATH: input.DATABASE_PATH?.trim() || './data/jevmail.db',
     POLL_INTERVAL_SECONDS: positiveInt(input.POLL_INTERVAL_SECONDS, 60),
     MAX_PER_MINUTE: positiveInt(input.MAX_PER_MINUTE, 30), MAX_PER_HOUR: positiveInt(input.MAX_PER_HOUR, 300),
@@ -33,6 +33,6 @@ export function parseEnv(input: Record<string, string | undefined>): EnvParseRes
 
 export function requireEnv(input: Record<string, string | undefined> = process.env): AppEnv {
   const result = parseEnv(input);
-  if (!result.success) throw new Error(`Invalid environment: ${result.error.issues.map(i => i.path[0]).join(', ')}`);
+  if (!result.success) throw new Error(`JEVmail cannot start: missing or invalid env: ${result.error.issues.map(i => i.path[0]).join(', ')}`);
   return result.data;
 }

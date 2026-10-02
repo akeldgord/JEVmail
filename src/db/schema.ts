@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS usage_events (
 );
 CREATE TABLE IF NOT EXISTS processing_errors (
   id INTEGER PRIMARY KEY AUTOINCREMENT, stage TEXT NOT NULL,
-  category TEXT NOT NULL, message_id TEXT, created_at INTEGER NOT NULL
+  category TEXT NOT NULL, provider TEXT, status INTEGER, detail TEXT,
+  message_id TEXT, created_at INTEGER NOT NULL
 );
 `;
+

@@ -12,7 +12,7 @@ test('builds backlog queries for presets, custom ranges, and all inbox while exc
   assert.equal(buildBacklogQuery({kind:'all'},now),'-label:"JEVmail/Processed"');
 });
 
-test('estimation does not create a job and reports cost unavailable rather than guessing',async()=>{
+test('estimation uses the documented TypeSafe input-token rate when provider cost metadata is unavailable',async()=>{
   let creates=0;
   const gmail:any={async listMessages(q:any){assert.deepEqual(q.labelIds,['INBOX']);return{messages:[],resultSizeEstimate:42};}};
   const repos:any={backlog:{create(){creates++;}},usage:{listSince(){return[{kind:'classification',inputTokens:500,costCents:null,createdAt:1}];}},installation:{get(){return{backlogBatchSize:25};}}};
@@ -21,7 +21,9 @@ test('estimation does not create a job and reports cost unavailable rather than 
   assert.equal(estimate.eligibleMessages,42);
   assert.equal(estimate.estimatedCalls,42);
   assert.equal(estimate.estimatedInputTokens,21000);
-  assert.equal(estimate.costEstimateUnavailable,true);
+  assert.equal(estimate.costEstimateUnavailable,false);
+  assert.equal(estimate.costEstimateBasis,'pricing_estimate');
+  assert.ok(Math.abs((estimate.estimatedCostUsd??0)-0.000882)<1e-12);
   assert.equal(creates,0);
 });
 
@@ -61,6 +63,7 @@ test('does not complete early when Gmail resultSizeEstimate undercounts eligible
   assert.equal(afterFirst.status,'running');
   const afterSecond=await manager.runBacklogBatch(job.id);
   assert.equal(afterSecond.status,'completed');
+  assert.equal(afterSecond.total,3);
 });
 
 test('permanent backlog failures are recorded once and skipped so later messages can progress',async()=>{
