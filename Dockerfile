@@ -27,6 +27,7 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/src ./src
+COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package.json ./package.json
 RUN mkdir -p /app/data && chown -R node:node /app
 USER node
