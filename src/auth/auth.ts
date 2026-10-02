@@ -34,15 +34,19 @@ export const authOptions:NextAuthOptions={
         const encryptedRefreshToken=gmailScopePresent&&account.refresh_token
           ?encryptSecret(account.refresh_token,env.APP_ENCRYPTION_KEY)
           :i?.encryptedRefreshToken??null;
+        const connectionReady=gmailScopePresent&&Boolean(encryptedRefreshToken);
+        const finalReconnectReason=!gmailScopePresent
+          ?reconnectReason
+          :connectionReady?null:'Google did not return offline Gmail access. Re-authorize JEVmail and grant access again.';
         repos.installation.upsert({
           accountEmail:String(email),
           encryptedRefreshToken,
           startupWatermarkMs:i?.startupWatermarkMs??Date.now(),
           processedLabelId:i?.processedLabelId??null,
           paused:i?.paused??false,
-          needsReconnect:!gmailScopePresent
+          needsReconnect:!connectionReady
         });
-        repos.installation.patch?.({reconnectReason});
+        repos.installation.patch?.({reconnectReason:finalReconnectReason});
         if(!gmailScopePresent){
           repos.error.add({
             stage:'oauth',category:'gmail_scope',provider:'gmail',status:null,
