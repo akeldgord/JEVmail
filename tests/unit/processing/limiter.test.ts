@@ -89,3 +89,12 @@ test('minute and hour limits remain rolling across UTC midnight while daily coun
   const decision=await governor.canStart(justAfterMidnight);
   assert.equal(decision.allowed,false);assert.equal(decision.reason,'per_minute');assert.equal(decision.counts.day,0);assert.equal(decision.counts.minute,1);
 });
+
+
+test('concurrent canStart calls reserve capacity and cannot overshoot the minute cap',async()=>{
+  const repo=new MemoryUsageRepo();
+  const governor=new RateGovernor(repo,()=>({maxPerMinute:3,maxPerHour:10,maxPerDay:10}));
+  const decisions=await Promise.all(Array.from({length:8},()=>governor.canStart(t)));
+  assert.equal(decisions.filter(d=>d.allowed).length,3);
+  assert.equal(decisions.filter(d=>!d.allowed&&d.reason==='per_minute').length,5);
+});
