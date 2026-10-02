@@ -4,9 +4,9 @@ import { requireEnv } from '../config/env.ts';
 import { getRuntimeRepositories } from '../db/runtime.ts';
 import { assertBoundAccount } from './google-account.ts';
 import { encryptSecret } from './token-crypto.ts';
+import { evaluateGrantedScopes, GMAIL_MODIFY_SCOPE } from './oauth-scope.ts';
 
 const env=requireEnv();
-const GMAIL_MODIFY_SCOPE='https://www.googleapis.com/auth/gmail.modify';
 
 export const authOptions:NextAuthOptions={
   secret:env.AUTH_SECRET,
@@ -30,9 +30,7 @@ export const authOptions:NextAuthOptions={
         const repos=getRuntimeRepositories();
         const i=repos.installation.get();
         if(i)assertBoundAccount(i.accountEmail,String(email));
-        const grantedScopes=String((account as any).scope??'').trim();
-        const scopeWasReported=grantedScopes.length>0;
-        const gmailScopePresent=!scopeWasReported||grantedScopes.split(/\s+/).includes(GMAIL_MODIFY_SCOPE);
+        const {gmailScopePresent,reconnectReason}=evaluateGrantedScopes((account as any).scope);
         const encryptedRefreshToken=gmailScopePresent&&account.refresh_token
           ?encryptSecret(account.refresh_token,env.APP_ENCRYPTION_KEY)
           :i?.encryptedRefreshToken??null;
@@ -44,9 +42,7 @@ export const authOptions:NextAuthOptions={
           paused:i?.paused??false,
           needsReconnect:!gmailScopePresent
         });
-        repos.installation.patch?.({
-          reconnectReason:gmailScopePresent?null:'Gmail permission missing. Re-authorize JEVmail and grant Gmail access.'
-        });
+        repos.installation.patch?.({reconnectReason});
         if(!gmailScopePresent){
           repos.error.add({
             stage:'oauth',category:'gmail_scope',provider:'gmail',status:null,
