@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MessageProcessor } from '../../../src/processing/processor.ts';
-import { RetryPolicy, classifyOperationalError, isGmailQuotaError, requiresGmailReconnect } from '../../../src/processing/retry-policy.ts';
+import { RetryPolicy, classifyOperationalError, describeOperationalError, isGmailQuotaError, requiresGmailReconnect } from '../../../src/processing/retry-policy.ts';
 import { DEFAULT_TAXONOMY, DEFAULT_GLOBAL_INSTRUCTIONS } from '../../../src/domain/defaults.ts';
 import { hashClassifierConfig } from '../../../src/domain/config-version.ts';
 import { JevApiError } from '../../../src/classifier/jev-client.ts';
@@ -175,4 +175,18 @@ test('rate deferral persists reason reset time and deferred poll status',async()
   assert.equal(state.deferUntil,123456);
   assert.equal(state.lastPollStatus,'deferred');
   assert.equal(h.classifierCalls,0);
+});
+
+
+test('Gmail scope 403 triggers reconnect and diagnostic detail includes status and reason',()=>{
+  const error:any=new Error('Request had insufficient authentication scopes.');
+  error.status=403;
+  error.errors=[{domain:'global',reason:'insufficientPermissions'}];
+  error.response={data:{error:{status:'PERMISSION_DENIED',errors:error.errors}}};
+  assert.equal(requiresGmailReconnect(error),true);
+  const details=describeOperationalError(error);
+  assert.equal(details.provider,'gmail');
+  assert.equal(details.status,403);
+  assert.match(details.detail,/HTTP 403/);
+  assert.match(details.detail,/insufficientPermissions/);
 });
