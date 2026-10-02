@@ -34,7 +34,7 @@ try{
       'Idempotency-Key':'jevmail-install-preflight-v1'
     },
     body:JSON.stringify(body),
-    signal:AbortSignal.timeout(20000)
+    signal:AbortSignal.timeout(5000)
   });
 }catch(error){
   throw new Error(`Classifier preflight could not reach ${env.JEV_BASE_URL}: ${error instanceof Error?error.message:String(error)}`);
