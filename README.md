@@ -324,6 +324,8 @@ Before starting the app:
 docker compose --profile tools run --rm preflight
 ```
 
+Preflight runs automatically before both the web app and worker start. You can also run it manually.
+
 Preflight:
 
 - validates required environment variables
@@ -380,11 +382,14 @@ JEVmail does not continuously fight user-created Gmail filters. If another Gmail
 | Max classifications/hour | 300 |
 | Max classifications/day | 2,000 |
 | Backlog batch size | 25 |
+| Backlog concurrency | 8 |
 | Daily spend ceiling | unset |
 
 Minute and hour limits are rolling. Daily count/spend resets on the UTC day boundary.
 
 The spend ceiling is enforced only when reliable provider cost metadata is available.
+
+When a minute, hour, day, or spend limit is reached, JEVmail records the reason and reset time, shows the waiting state in the Processing page, and resumes automatically after the window resets. Backlog jobs use concurrent chunks controlled by `BACKLOG_CONCURRENCY` (default `8`).
 
 ---
 
@@ -438,9 +443,9 @@ Integration tests use fake providers and must never call live Gmail/Jev services
 
 ---
 
-## v1 deliberately does less
+## Deliberate non-goals
 
-JEVmail v1 does **not**:
+JEVmail does **not**:
 
 - archive email
 - delete email
@@ -456,9 +461,9 @@ JEVmail v1 does **not**:
 - automatically reclassify completed messages
 - operate as a multi-user hosted SaaS
 
-These are deliberate v1 constraints.
+These are deliberate constraints.
 
-The goal of v1 is to make the classification step useful, inspectable, and safe before automating downstream actions.
+The goal is to keep the classification step useful, inspectable, and safe before automating downstream actions.
 
 ---
 
