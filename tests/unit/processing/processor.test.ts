@@ -157,3 +157,22 @@ test('bare Gmail 403 is not assumed to be an auth failure',()=>{
   error.response={data:{error:{status:'PERMISSION_DENIED'}}};
   assert.equal(requiresGmailReconnect(error),false);
 });
+
+
+test('rate deferral persists reason reset time and deferred poll status',async()=>{
+  const h=makeHarness();
+  let state:any={processedLabelId:'processed',paused:false,needsReconnect:false,deferReason:null,deferUntil:null};
+  (h.processor as any).repos.installation={
+    get(){return state;},
+    patch(x:any){state={...state,...x};}
+  };
+  (h.processor as any).governor={
+    async canStart(){return{allowed:false,reason:'per_hour',retryAt:123456,counts:{minute:1,hour:300,day:300},spend:{status:'not_configured'}};},
+    async recordUsage(){throw new Error('not reached');}
+  };
+  assert.equal(await h.processor.processMessage('m1'),'deferred');
+  assert.equal(state.deferReason,'per_hour');
+  assert.equal(state.deferUntil,123456);
+  assert.equal(state.lastPollStatus,'deferred');
+  assert.equal(h.classifierCalls,0);
+});
