@@ -33,5 +33,21 @@ services:
       web:
         condition: service_healthy
 
+  preflight:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: tools
+    env_file:
+      - .env
+    command: ["npm", "run", "preflight"]
+
+  test:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: tools
+    command: ["npm", "test"]
+
 volumes:
   jevmail-data:
