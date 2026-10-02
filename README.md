@@ -20,6 +20,8 @@
   A self-hosted Gmail classifier that assigns one practical handling label to each eligible message.
 </p>
 
+> **Project policy:** JEVmail is published as source-available reference software. External issues, feature requests, and pull requests are not currently accepted.
+
 ---
 
 ## The idea
