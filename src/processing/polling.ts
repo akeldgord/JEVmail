@@ -25,7 +25,7 @@ export class PollingService {
       catch(error){
         const details=describeOperationalError(error);
         if(requiresGmailReconnect(error)){
-          this.repos.installation.patch?.({needsReconnect:true});
+          this.repos.installation.patch?.({needsReconnect:true,reconnectReason:details.detail});
           this.repos.error?.add({stage:'poll',category:'gmail_auth',provider:details.provider,status:details.status,detail:details.detail,messageId:null,createdAt:this.now()});
           return finish({status:'needs_reconnect',examined,processed,failures});
         }
