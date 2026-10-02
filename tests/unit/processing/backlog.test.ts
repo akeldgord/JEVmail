@@ -23,7 +23,7 @@ test('estimation uses the documented TypeSafe input-token rate when provider cos
   assert.equal(estimate.estimatedInputTokens,21000);
   assert.equal(estimate.costEstimateUnavailable,false);
   assert.equal(estimate.costEstimateBasis,'pricing_estimate');
-  assert.equal(estimate.estimatedCostUsd,0.000882);
+  assert.ok(Math.abs((estimate.estimatedCostUsd??0)-0.000882)<1e-12);
   assert.equal(creates,0);
 });
 
