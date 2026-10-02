@@ -1,6 +1,6 @@
 {
   "name": "jevmail",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,7 +15,8 @@
     "test:core": "node scripts/run-core-tests.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --experimental-strip-types src/db/migrate.ts",
-    "test:ui": "vitest run tests/unit/ui/dashboard.test.tsx"
+    "test:ui": "vitest run tests/unit/ui/dashboard.test.tsx",
+    "preflight": "node --experimental-strip-types scripts/preflight.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.5",
