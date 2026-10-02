@@ -7,6 +7,7 @@ function ensureInstallationColumns(db:AppDatabase){
   const existing=new Set((db.prepare('PRAGMA table_info(installation)').all() as any[]).map((r:any)=>String(r.name)));
   const additions:[string,string][]=[
     ['backlog_concurrency','INTEGER NOT NULL DEFAULT 8'],
+    ['reconnect_reason','TEXT'],
     ['defer_reason','TEXT'],
     ['defer_until','INTEGER'],
   ];
