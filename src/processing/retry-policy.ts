@@ -62,9 +62,9 @@ export function classifyOperationalError(error: unknown): ErrorDisposition {
 
 export function describeOperationalError(error:unknown):OperationalErrorDetails {
   const status=errorStatus(error)||null;
-  if(error instanceof JevApiError) return {provider:'classifier',status,detail:truncate(error.message||'classifier error')};
+  if(error instanceof JevApiError) return {provider:'classifier',status,detail:truncate(`${status?`HTTP ${status}: `:''}${error.message||'classifier error'}`)};
   const code=errorCode(error);
-  if(status || errorText(error).includes('gmail')) return {provider:'gmail',status,detail:truncate(String((error as any)?.message ?? code ?? 'Gmail error'))};
+  if(status || errorText(error).includes('gmail')) { const raw=String((error as any)?.message ?? code ?? 'Gmail error'); const reasons=JSON.stringify((error as any)?.errors ?? (error as any)?.response?.data?.error?.errors ?? ''); return {provider:'gmail',status,detail:truncate(`${status?`HTTP ${status}: `:''}${raw}${reasons&&reasons!=='""'?` ${reasons}`:''}`)}; }
   if(['econnreset','econnrefused','etimedout','enetunreach','eai_again'].includes(code)) return {provider:'network',status:null,detail:truncate(String((error as any)?.message ?? code))};
   return {provider:'app',status,detail:truncate(String((error as any)?.message ?? 'processing error'))};
 }
