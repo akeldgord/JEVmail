@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS installation (
   processed_label_id TEXT,
   paused INTEGER NOT NULL DEFAULT 0,
   needs_reconnect INTEGER NOT NULL DEFAULT 0,
+  reconnect_reason TEXT,
   poll_interval_seconds INTEGER NOT NULL DEFAULT 60,
   max_per_minute INTEGER NOT NULL DEFAULT 30,
   max_per_hour INTEGER NOT NULL DEFAULT 300,
