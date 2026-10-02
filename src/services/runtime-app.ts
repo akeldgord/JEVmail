@@ -15,6 +15,6 @@ export function createRuntimeApp(){
   const classifier=new JevClassifier(new JevClient({baseUrl:env.JEV_BASE_URL,apiKey:env.JEVMODEL_API_KEY}));
   const governor=new RateGovernor(repos.usage,()=>{const i=repos.installation.get();if(!i)throw new Error('installation missing');return{maxPerMinute:i.maxPerMinute,maxPerHour:i.maxPerHour,maxPerDay:i.maxPerDay,dailySpendCents:i.dailySpendCents??undefined};});
   const processor=new MessageProcessor({gmail,classifier,repos,governor});
-  const backlog=new BacklogManager({gmail,repos,processor});
+  const backlog=new BacklogManager({gmail,repos,processor,concurrency:env.BACKLOG_CONCURRENCY});
   return{env,repos,gmail,classifier,governor,processor,backlog};
 }
