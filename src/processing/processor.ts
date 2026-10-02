@@ -119,8 +119,14 @@ export class MessageProcessor {
       if (persisted) {
         result = attemptAsResult(persisted);
       } else {
-        const decision = await this.governor.canStart(this.now());
-        if (!decision.allowed) return 'deferred';
+        const now=this.now();
+        const decision = await this.governor.canStart(now);
+        if (!decision.allowed) {
+          this.repos.installation.patch?.({deferReason:decision.reason??null,deferUntil:decision.retryAt??null,lastPollStatus:'deferred'});
+          return 'deferred';
+        }
+        const installationState=this.repos.installation.get();
+        if(installationState?.deferReason||installationState?.deferUntil)this.repos.installation.patch?.({deferReason:null,deferUntil:null});
         context = await this.loadContext(this.gmail, messageId);
         const serializedState = serializeContextForClassifier(context, this.maxClassifierStateChars);
         result = await this.classifier.classify({
