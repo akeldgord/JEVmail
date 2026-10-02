@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MessageProcessor } from '../../../src/processing/processor.ts';
-import { RetryPolicy, classifyOperationalError } from '../../../src/processing/retry-policy.ts';
+import { RetryPolicy, classifyOperationalError, isGmailQuotaError, requiresGmailReconnect } from '../../../src/processing/retry-policy.ts';
 import { DEFAULT_TAXONOMY, DEFAULT_GLOBAL_INSTRUCTIONS } from '../../../src/domain/defaults.ts';
 import { hashClassifierConfig } from '../../../src/domain/config-version.ts';
 import { JevApiError } from '../../../src/classifier/jev-client.ts';
@@ -125,4 +125,35 @@ test('Gmail authorization failure marks installation reconnect-required and reco
   assert.equal(errors.length,1);
   assert.equal(errors[0].category,'gmail_auth');
   assert.equal(errors[0].messageId,'m1');
+});
+
+
+test('Jev classifier failure never triggers Gmail reconnect state',async()=>{
+  const h=makeHarness();let reconnect=false;const errors:any[]=[];
+  (h.processor as any).repos.installation.patch=(x:any)=>{if(x.needsReconnect)reconnect=true;};
+  (h.processor as any).repos.error={add:(x:any)=>errors.push(x)};
+  (h.processor as any).classifier={async classify(){throw new JevApiError('invalid TypeSafe API key',401,false);}};
+  assert.equal(await h.processor.processMessage('m1'),'failed_permanent');
+  assert.equal(reconnect,false);
+  assert.equal(errors.length,1);
+  assert.equal(errors[0].category,'classifier');
+  assert.equal(errors[0].provider,'classifier');
+  assert.equal(errors[0].status,401);
+});
+
+test('Gmail quota 403 is transient and never triggers reconnect',()=>{
+  const quota:any=new Error("Quota exceeded for quota metric 'Total Query Cost' and limit 'Units per minute per user' of service 'gmail.googleapis.com'");
+  quota.status=403;
+  quota.errors=[{domain:'usageLimits',reason:'rateLimitExceeded'}];
+  quota.response={data:{error:{status:'PERMISSION_DENIED',errors:quota.errors}}};
+  assert.equal(isGmailQuotaError(quota),true);
+  assert.equal(requiresGmailReconnect(quota),false);
+  assert.equal(classifyOperationalError(quota),'transient');
+});
+
+test('bare Gmail 403 is not assumed to be an auth failure',()=>{
+  const error:any=new Error('Forbidden');
+  error.status=403;
+  error.response={data:{error:{status:'PERMISSION_DENIED'}}};
+  assert.equal(requiresGmailReconnect(error),false);
 });
