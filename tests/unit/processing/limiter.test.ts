@@ -28,6 +28,7 @@ test('enforces minute, hour, and day limits only for new classifications', async
   let decision = await governor.canStart(t);
   assert.equal(decision.allowed, false);
   assert.equal(decision.reason, 'per_minute');
+  assert.equal(decision.retryAt, t - 20_000 + 60_000);
 
   decision = await governor.canStart(t + 61_000);
   assert.equal(decision.allowed, true);
@@ -36,6 +37,7 @@ test('enforces minute, hour, and day limits only for new classifications', async
   decision = await governor.canStart(t + 62_000);
   assert.equal(decision.allowed, false);
   assert.equal(decision.reason, 'per_hour');
+  assert.equal(decision.retryAt, t - 20_000 + 60 * 60 * 1000);
 
   decision = await governor.canStart(t + 60 * 60 * 1000 + 1);
   assert.equal(decision.allowed, true);
@@ -43,6 +45,7 @@ test('enforces minute, hour, and day limits only for new classifications', async
   decision = await governor.canStart(t + 60 * 60 * 1000 + 2);
   assert.equal(decision.allowed, false);
   assert.equal(decision.reason, 'per_day');
+  assert.equal(decision.retryAt, Date.UTC(2026,8,30,0,0,0));
 });
 
 test('changing settings takes effect without rewriting historical usage', async () => {
@@ -66,6 +69,7 @@ test('blocks at a configured daily spend ceiling when provider cost is reliable'
   const decision = await governor.canStart(t);
   assert.equal(decision.allowed, false);
   assert.equal(decision.reason, 'daily_spend');
+  assert.equal(decision.retryAt, Date.UTC(2026,8,30,0,0,0));
   assert.deepEqual(decision.spend, { status: 'available', usedCents: 25, ceilingCents: 25 });
 });
 
@@ -84,4 +88,13 @@ test('minute and hour limits remain rolling across UTC midnight while daily coun
   const governor=new RateGovernor(repo,()=>({maxPerMinute:1,maxPerHour:10,maxPerDay:10}));
   const decision=await governor.canStart(justAfterMidnight);
   assert.equal(decision.allowed,false);assert.equal(decision.reason,'per_minute');assert.equal(decision.counts.day,0);assert.equal(decision.counts.minute,1);
+});
+
+
+test('concurrent canStart calls reserve capacity and cannot overshoot the minute cap',async()=>{
+  const repo=new MemoryUsageRepo();
+  const governor=new RateGovernor(repo,()=>({maxPerMinute:3,maxPerHour:10,maxPerDay:10}));
+  const decisions=await Promise.all(Array.from({length:8},()=>governor.canStart(t)));
+  assert.equal(decisions.filter(d=>d.allowed).length,3);
+  assert.equal(decisions.filter(d=>!d.allowed&&d.reason==='per_minute').length,5);
 });

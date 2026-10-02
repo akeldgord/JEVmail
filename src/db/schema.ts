@@ -7,12 +7,16 @@ CREATE TABLE IF NOT EXISTS installation (
   processed_label_id TEXT,
   paused INTEGER NOT NULL DEFAULT 0,
   needs_reconnect INTEGER NOT NULL DEFAULT 0,
+  reconnect_reason TEXT,
   poll_interval_seconds INTEGER NOT NULL DEFAULT 60,
   max_per_minute INTEGER NOT NULL DEFAULT 30,
   max_per_hour INTEGER NOT NULL DEFAULT 300,
   max_per_day INTEGER NOT NULL DEFAULT 2000,
   backlog_batch_size INTEGER NOT NULL DEFAULT 25,
+  backlog_concurrency INTEGER NOT NULL DEFAULT 8,
   daily_spend_cents INTEGER,
+  defer_reason TEXT,
+  defer_until INTEGER,
   last_poll_at INTEGER,
   last_poll_status TEXT
 );
@@ -56,6 +60,7 @@ CREATE TABLE IF NOT EXISTS usage_events (
 );
 CREATE TABLE IF NOT EXISTS processing_errors (
   id INTEGER PRIMARY KEY AUTOINCREMENT, stage TEXT NOT NULL,
-  category TEXT NOT NULL, message_id TEXT, created_at INTEGER NOT NULL
+  category TEXT NOT NULL, provider TEXT, status INTEGER, detail TEXT,
+  message_id TEXT, created_at INTEGER NOT NULL
 );
 `;

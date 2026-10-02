@@ -34,3 +34,44 @@ test('configured worker waits for OAuth setup and reads poll interval dynamicall
   state={...state,needsReconnect:true,pollIntervalSeconds:9};
   assert.equal((await service.pollOnce()).status,'needs_reconnect');assert.equal(cycles,1);assert.equal(service.intervalMs(60000),9000);
 });
+
+
+test('incoming poller counts never mutate backlog job counters',async()=>{
+  const job:any={id:9,status:'pending',processed:0,total:10,failed:0};
+  const repos:any={
+    backlog:{list(){return[job];}},
+    installation:{patch(){}}
+  };
+  const cycle=new WorkerCycle({
+    polling:{pollOnce:async()=>({status:'ok',examined:3,processed:3,failures:0})} as any,
+    backlog:{runBacklogBatch:async()=>job} as any,
+    repos
+  });
+  await cycle.pollOnce();
+  assert.equal(job.processed,0);
+  assert.equal(job.total,10);
+});
+
+test('configured worker exposes active defer state and auto-resumes deferred backlog after reset',async()=>{
+  const mod:any=await import('../../../src/processing/worker.ts');
+  let state:any={encryptedRefreshToken:'enc',needsReconnect:false,pollIntervalSeconds:60,deferReason:'per_hour',deferUntil:Date.now()+60_000};
+  const job:any={id:4,status:'deferred',processed:0,total:10,failed:0,updatedAt:0};
+  let cycles=0;
+  const repos:any={
+    installation:{get(){return state;},patch(x:any){state={...state,...x};}},
+    backlog:{list(){return[job];},update(_id:number,x:any){Object.assign(job,x);}}
+  };
+  const service=new mod.ConfiguredWorkerService({
+    repos,
+    createCycle(){cycles++;return{pollOnce:async()=>({status:'ok',examined:0,processed:0,failures:0})};}
+  });
+  assert.equal((await service.pollOnce()).status,'deferred');
+  assert.equal(cycles,0);
+  assert.equal(state.lastPollStatus,'deferred');
+  state.deferUntil=Date.now()-1;
+  assert.equal((await service.pollOnce()).status,'ok');
+  assert.equal(cycles,1);
+  assert.equal(state.deferReason,null);
+  assert.equal(state.deferUntil,null);
+  assert.equal(job.status,'pending');
+});

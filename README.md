@@ -217,7 +217,7 @@ Historical mail is handled through an explicit **Clear Backlog** workflow:
 
 Backlog jobs can be paused, resumed, or cancelled. They use the same rate and spend controls as normal processing.
 
-JEVmail estimates eligible messages and expected usage before starting. If reliable provider cost metadata is unavailable, cost is reported as unavailable.
+JEVmail estimates eligible messages and expected usage before starting. Cost estimates use **$0.042/MTok input · Free output** when provider-reported billing metadata is unavailable.
 
 ---
 
@@ -254,13 +254,13 @@ Runtime persistence currently uses Node's built-in SQLite API with explicit repo
 
 ## Requirements
 
-- Docker + Docker Compose **recommended**, or Node.js **22.6+**
+- Docker + Docker Compose recommended
 - a Google account with Gmail
-- a Google Cloud OAuth application with the Gmail API enabled
-- a Jev API key
+- a Google Cloud project
+- a TypeSafe API key
 - a pinned Jev production model identifier
 
-The example configuration uses `jev-1.13.0`.
+The example configuration uses `jev-1.13.0` against the official TypeSafe API at `https://api.typesafe.ai`.
 
 ## 1. Clone and configure
 
@@ -270,7 +270,7 @@ cd JEVmail
 cp .env.example .env
 ```
 
-Generate **different** random values for `AUTH_SECRET` and `APP_ENCRYPTION_KEY`:
+Generate different random values for `AUTH_SECRET` and `APP_ENCRYPTION_KEY`:
 
 ```bash
 openssl rand -hex 32
@@ -288,31 +288,54 @@ APP_ENCRYPTION_KEY=<different random secret>
 GOOGLE_CLIENT_ID=<google oauth client id>
 GOOGLE_CLIENT_SECRET=<google oauth client secret>
 
-JEVMODEL_API_KEY=<jev api key>
+JEVMODEL_API_KEY=<TypeSafe API key>
 JEV_MODEL=jev-1.13.0
+JEV_BASE_URL=https://api.typesafe.ai
 ```
 
 ## 2. Configure Google OAuth
 
+Use this exact sequence:
+
 1. Create or select a Google Cloud project.
 2. Enable the **Gmail API**.
 3. Configure the OAuth consent screen.
-4. Create an **OAuth 2.0 Web application** client.
-5. Add this redirect URI:
+4. If the consent screen is in **Testing**, add the Gmail account you will use as a test user.
+5. Create an **OAuth 2.0 Web application** client.
+6. Register the exact redirect URI printed by JEVmail preflight.
+
+For the default local install:
 
 ```text
 http://localhost:3000/api/auth/callback/google
 ```
 
-For a deployed instance, replace the origin with the exact HTTPS `APP_URL`.
+The URI must match `APP_URL` exactly, including scheme, hostname, and port.
 
-JEVmail requests `gmail.modify` because it must read messages and apply/remove labels.
+Google consent changes can take time to propagate. If you just changed the consent screen or test users and sign-in still fails, wait several minutes before changing unrelated settings.
 
-The Google identity used during setup becomes the bound mailbox identity for that installation.
+JEVmail requests `gmail.modify`. After sign-in, JEVmail verifies that Google actually granted that scope. A token without Gmail access is marked as requiring re-authorization instead of failing later during processing.
 
-> Broad public distribution of a Gmail app may require additional Google OAuth verification. Personal/self-hosted installations can follow Google's normal testing-user flow.
+## 3. Run preflight
 
-## 3. Start it
+Before starting the app:
+
+```bash
+docker compose --profile tools run --rm preflight
+```
+
+Preflight runs automatically before both the web app and worker start. You can also run it manually.
+
+Preflight:
+
+- validates required environment variables
+- rejects the old `jevmodel.org` endpoint
+- prints the exact Google redirect URI to register
+- sends a tiny classifier request to verify the TypeSafe endpoint, API key, and model
+
+The classifier probe has minimal usage and contains no email content.
+
+## 4. Start JEVmail
 
 ```bash
 docker compose up -d --build
@@ -324,13 +347,16 @@ Open:
 http://localhost:3000
 ```
 
-Sign in with the Google account whose Inbox you want JEVmail to classify.
+Sign in with the Gmail account you want JEVmail to classify.
 
 ### Useful Docker commands
 
 ```bash
 # Follow web + worker logs
 docker compose logs -f
+
+# Run the full test suite inside Docker
+docker compose --profile tools run --rm test
 
 # Stop without deleting JEVmail state
 docker compose down
@@ -339,7 +365,11 @@ docker compose down
 docker compose down -v
 ```
 
-Deleting the local database does not remove Gmail labels already applied to messages. The Gmail-side processed marker exists partly to protect against accidental reclassification after local-state loss.
+Deleting the local database does not remove Gmail labels already applied to messages. The Gmail-side processed marker helps protect against accidental reclassification after local-state loss.
+
+### Existing Gmail filters
+
+JEVmail does not continuously fight user-created Gmail filters. If another Gmail filter removes or replaces a JEVmail classification label after a message has been processed, the hidden `JEVmail/Processed` marker remains authoritative and JEVmail will not automatically reclassify that message. This avoids label tug-of-war with user rules.
 
 ---
 
@@ -352,11 +382,16 @@ Deleting the local database does not remove Gmail labels already applied to mess
 | Max classifications/hour | 300 |
 | Max classifications/day | 2,000 |
 | Backlog batch size | 25 |
+| Backlog concurrency | 8 |
 | Daily spend ceiling | unset |
 
 Minute and hour limits are rolling. Daily count/spend resets on the UTC day boundary.
 
 The spend ceiling is enforced only when reliable provider cost metadata is available.
+
+When a minute, hour, day, or spend limit is reached, JEVmail records the reason and reset time, shows the waiting state in the Processing page, and resumes automatically after the window resets. Backlog jobs use concurrent chunks controlled by `BACKLOG_CONCURRENCY` (default `8`).
+
+Gmail is still the practical ceiling for backlog throughput. Gmail's per-user quota is 6,000 units/minute, and this workflow is roughly 190 units/message, so practical throughput is about 30 messages/minute before Gmail backpressure becomes the limiting factor. Increasing concurrency beyond the default will not produce unlimited throughput.
 
 ---
 
@@ -410,9 +445,9 @@ Integration tests use fake providers and must never call live Gmail/Jev services
 
 ---
 
-## v1 deliberately does less
+## Deliberate non-goals
 
-JEVmail v1 does **not**:
+JEVmail does **not**:
 
 - archive email
 - delete email
@@ -428,9 +463,9 @@ JEVmail v1 does **not**:
 - automatically reclassify completed messages
 - operate as a multi-user hosted SaaS
 
-These are deliberate v1 constraints.
+These are deliberate constraints.
 
-The goal of v1 is to make the classification step useful, inspectable, and safe before automating downstream actions.
+The goal is to keep the classification step useful, inspectable, and safe before automating downstream actions.
 
 ---
 

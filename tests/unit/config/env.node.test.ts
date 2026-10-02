@@ -14,14 +14,15 @@ test('parseEnv reports all required variables', () => {
 test('parseEnv applies defaults', () => {
   const result = parseEnv({
     APP_URL: 'http://localhost:3000', AUTH_SECRET: 'a'.repeat(32),
-    GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 'secret', JEVMODEL_API_KEY: 'sk-test',
+    GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 'secret', JEVMODEL_API_KEY: 'apikey_test',
     JEV_MODEL: 'jev-1.13.0', APP_ENCRYPTION_KEY: 'b'.repeat(32)
   });
   assert.equal(result.success, true);
-  assert.equal(result.data.JEV_BASE_URL, 'https://jevmodel.org');
+  assert.equal(result.data.JEV_BASE_URL, 'https://api.typesafe.ai');
   assert.equal(result.data.POLL_INTERVAL_SECONDS, 60);
   assert.equal(result.data.MAX_PER_MINUTE, 30);
   assert.equal(result.data.MAX_PER_HOUR, 300);
   assert.equal(result.data.MAX_PER_DAY, 2000);
   assert.equal(result.data.BACKLOG_BATCH_SIZE, 25);
+  assert.equal(result.data.BACKLOG_CONCURRENCY, 8);
 });
