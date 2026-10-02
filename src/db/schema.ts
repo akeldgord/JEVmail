@@ -12,7 +12,10 @@ CREATE TABLE IF NOT EXISTS installation (
   max_per_hour INTEGER NOT NULL DEFAULT 300,
   max_per_day INTEGER NOT NULL DEFAULT 2000,
   backlog_batch_size INTEGER NOT NULL DEFAULT 25,
+  backlog_concurrency INTEGER NOT NULL DEFAULT 8,
   daily_spend_cents INTEGER,
+  defer_reason TEXT,
+  defer_until INTEGER,
   last_poll_at INTEGER,
   last_poll_status TEXT
 );
