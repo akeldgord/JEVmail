@@ -24,4 +24,5 @@ test('parseEnv applies defaults', () => {
   assert.equal(result.data.MAX_PER_HOUR, 300);
   assert.equal(result.data.MAX_PER_DAY, 2000);
   assert.equal(result.data.BACKLOG_BATCH_SIZE, 25);
+  assert.equal(result.data.BACKLOG_CONCURRENCY, 8);
 });
