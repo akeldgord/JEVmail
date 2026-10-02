@@ -21,6 +21,7 @@ export type SpendStatus =
 export type LimitDecision = {
   allowed: boolean;
   reason?: LimitReason;
+  retryAt?: number;
   counts: { minute: number; hour: number; day: number };
   spend: SpendStatus;
 };
@@ -32,10 +33,16 @@ type UsageRepository = {
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
 
 function startOfUtcDay(now: number): number {
   const date = new Date(now);
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function oldestReset(events:UsageEvent[],windowMs:number,now:number):number{
+  const active=events.filter(e=>e.createdAt>now-windowMs&&e.createdAt<=now).sort((a,b)=>a.createdAt-b.createdAt);
+  return active.length?active[0].createdAt+windowMs:now+windowMs;
 }
 
 export class RateGovernor {
@@ -52,9 +59,11 @@ export class RateGovernor {
     const dayStart = startOfUtcDay(now);
     const earliestNeeded = Math.min(dayStart, now - HOUR_MS);
     const events = (await this.usage.listSince(earliestNeeded)).filter((event) => event.kind === 'classification');
-    const minute = events.filter((event) => event.createdAt > now - MINUTE_MS && event.createdAt <= now).length;
-    const hour = events.filter((event) => event.createdAt > now - HOUR_MS && event.createdAt <= now).length;
+    const minuteEvents = events.filter((event) => event.createdAt > now - MINUTE_MS && event.createdAt <= now);
+    const hourEvents = events.filter((event) => event.createdAt > now - HOUR_MS && event.createdAt <= now);
     const dayEvents = events.filter((event) => event.createdAt >= dayStart && event.createdAt <= now);
+    const minute = minuteEvents.length;
+    const hour = hourEvents.length;
     const day = dayEvents.length;
 
     let spend: SpendStatus = { status: 'not_configured' };
@@ -69,11 +78,11 @@ export class RateGovernor {
     }
 
     const counts = { minute, hour, day };
-    if (minute >= settings.maxPerMinute) return { allowed: false, reason: 'per_minute', counts, spend };
-    if (hour >= settings.maxPerHour) return { allowed: false, reason: 'per_hour', counts, spend };
-    if (day >= settings.maxPerDay) return { allowed: false, reason: 'per_day', counts, spend };
+    if (minute >= settings.maxPerMinute) return { allowed: false, reason: 'per_minute', retryAt:oldestReset(minuteEvents,MINUTE_MS,now), counts, spend };
+    if (hour >= settings.maxPerHour) return { allowed: false, reason: 'per_hour', retryAt:oldestReset(hourEvents,HOUR_MS,now), counts, spend };
+    if (day >= settings.maxPerDay) return { allowed: false, reason: 'per_day', retryAt:dayStart+DAY_MS, counts, spend };
     if (spend.status === 'available' && spend.usedCents >= spend.ceilingCents) {
-      return { allowed: false, reason: 'daily_spend', counts, spend };
+      return { allowed: false, reason: 'daily_spend', retryAt:dayStart+DAY_MS, counts, spend };
     }
     return { allowed: true, counts, spend };
   }
