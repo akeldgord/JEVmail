@@ -186,9 +186,9 @@ export class MessageProcessor {
       return 'processed';
     } catch (error) {
       const reconnect=requiresGmailReconnect(error);
-      if(reconnect)this.repos.installation.patch?.({needsReconnect:true});
-      const disposition=error instanceof PermanentProcessingError?'permanent':classifyOperationalError(error);
       const details=describeOperationalError(error);
+      if(reconnect)this.repos.installation.patch?.({needsReconnect:true,reconnectReason:details.detail});
+      const disposition=error instanceof PermanentProcessingError?'permanent':classifyOperationalError(error);
       const category=reconnect?'gmail_auth':details.provider==='classifier'?'classifier':isGmailQuotaError(error)?'gmail_quota':disposition;
       this.repos.error?.add({stage:'process_message',category,provider:details.provider,status:details.status,detail:details.detail,messageId,createdAt:this.now()});
       return disposition === 'transient' ? 'failed_transient' : 'failed_permanent';
