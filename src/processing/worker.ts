@@ -1,12 +1,76 @@
 import type { PollingService, PollResult } from './polling.ts';
 import type { BacklogManager } from './backlog.ts';
+
 export type WorkerStatus = PollResult | { status:'error'; error:'worker_error'; examined:0; processed:0; failures:1 };
-export class WorkerCycle{private readonly polling:Pick<PollingService,'pollOnce'>;private readonly backlog:Pick<BacklogManager,'runBacklogBatch'>;private readonly repos:any;constructor(options:{polling:Pick<PollingService,'pollOnce'>;backlog:Pick<BacklogManager,'runBacklogBatch'>;repos:any}){this.polling=options.polling;this.backlog=options.backlog;this.repos=options.repos;}async pollOnce():Promise<PollResult>{const result=await this.polling.pollOnce();if(['paused','needs_reconnect','deferred','not_ready'].includes(result.status))return result;const active=(this.repos.backlog.list?.(20)??[]).find((job:any)=>job.status==='running'||job.status==='pending');if(active)await this.backlog.runBacklogBatch(active.id);return result;}}
-export class ConfiguredWorkerService{
-  private readonly repos:any;private readonly createCycle:()=>{pollOnce():Promise<PollResult>};
-  constructor(options:{repos:any;createCycle:()=>{pollOnce():Promise<PollResult>}}){this.repos=options.repos;this.createCycle=options.createCycle;}
-  async pollOnce():Promise<PollResult>{const i=this.repos.installation.get();if(!i?.encryptedRefreshToken)return{status:'not_ready',examined:0,processed:0,failures:0};if(i.needsReconnect)return{status:'needs_reconnect',examined:0,processed:0,failures:0};return this.createCycle().pollOnce();}
-  intervalMs(fallbackMs:number){const seconds=Number(this.repos.installation.get()?.pollIntervalSeconds);return Number.isFinite(seconds)&&seconds>0?seconds*1000:fallbackMs;}
+
+export class WorkerCycle{
+  private readonly polling:Pick<PollingService,'pollOnce'>;
+  private readonly backlog:Pick<BacklogManager,'runBacklogBatch'>;
+  private readonly repos:any;
+  constructor(options:{polling:Pick<PollingService,'pollOnce'>;backlog:Pick<BacklogManager,'runBacklogBatch'>;repos:any}){
+    this.polling=options.polling;this.backlog=options.backlog;this.repos=options.repos;
+  }
+  async pollOnce():Promise<PollResult>{
+    const result=await this.polling.pollOnce();
+    if(['paused','needs_reconnect','deferred','not_ready'].includes(result.status))return result;
+    const active=(this.repos.backlog.list?.(20)??[]).find((job:any)=>['running','pending','deferred'].includes(job.status));
+    if(active){
+      const job=await this.backlog.runBacklogBatch(active.id);
+      if(job?.status==='deferred'){
+        this.repos.installation.patch?.({lastPollAt:Date.now(),lastPollStatus:'deferred'});
+        return {...result,status:'deferred'};
+      }
+    }
+    return result;
+  }
 }
-function wait(ms:number,signal:AbortSignal):Promise<void>{if(signal.aborted)return Promise.resolve();return new Promise(resolve=>{const timer=setTimeout(done,ms);function done(){signal.removeEventListener('abort',done);clearTimeout(timer);resolve();}signal.addEventListener('abort',done,{once:true});});}
-export async function runWorker(service:{pollOnce():Promise<PollResult>},options:{signal:AbortSignal;intervalMs:number|(()=>number);onStatus?:(status:WorkerStatus)=>void|Promise<void>}):Promise<void>{while(!options.signal.aborted){let status:WorkerStatus;try{status=await service.pollOnce();}catch{status={status:'error',error:'worker_error',examined:0,processed:0,failures:1};}await options.onStatus?.(status);if(options.signal.aborted)break;const interval=typeof options.intervalMs==='function'?options.intervalMs():options.intervalMs;await wait(Math.max(1,interval),options.signal);}}
+
+export class ConfiguredWorkerService{
+  private readonly repos:any;
+  private readonly createCycle:()=>{pollOnce():Promise<PollResult>};
+  constructor(options:{repos:any;createCycle:()=>{pollOnce():Promise<PollResult>}}){
+    this.repos=options.repos;this.createCycle=options.createCycle;
+  }
+  async pollOnce():Promise<PollResult>{
+    const i=this.repos.installation.get();
+    if(!i?.encryptedRefreshToken)return{status:'not_ready',examined:0,processed:0,failures:0};
+    if(i.needsReconnect)return{status:'needs_reconnect',examined:0,processed:0,failures:0};
+    const now=Date.now();
+    if(i.deferUntil&&i.deferUntil>now){
+      this.repos.installation.patch?.({lastPollAt:now,lastPollStatus:'deferred'});
+      return{status:'deferred',examined:0,processed:0,failures:0};
+    }
+    if(i.deferReason||i.deferUntil){
+      this.repos.installation.patch?.({deferReason:null,deferUntil:null});
+      for(const job of this.repos.backlog.list?.(20)??[]){
+        if(job.status==='deferred')this.repos.backlog.update(job.id,{status:'pending',updatedAt:now});
+      }
+    }
+    return this.createCycle().pollOnce();
+  }
+  intervalMs(fallbackMs:number){
+    const seconds=Number(this.repos.installation.get()?.pollIntervalSeconds);
+    return Number.isFinite(seconds)&&seconds>0?seconds*1000:fallbackMs;
+  }
+}
+
+function wait(ms:number,signal:AbortSignal):Promise<void>{
+  if(signal.aborted)return Promise.resolve();
+  return new Promise(resolve=>{
+    const timer=setTimeout(done,ms);
+    function done(){signal.removeEventListener('abort',done);clearTimeout(timer);resolve();}
+    signal.addEventListener('abort',done,{once:true});
+  });
+}
+
+export async function runWorker(service:{pollOnce():Promise<PollResult>},options:{signal:AbortSignal;intervalMs:number|(()=>number);onStatus?:(status:WorkerStatus)=>void|Promise<void>}):Promise<void>{
+  while(!options.signal.aborted){
+    let status:WorkerStatus;
+    try{status=await service.pollOnce();}
+    catch{status={status:'error',error:'worker_error',examined:0,processed:0,failures:1};}
+    await options.onStatus?.(status);
+    if(options.signal.aborted)break;
+    const interval=typeof options.intervalMs==='function'?options.intervalMs():options.intervalMs;
+    await wait(Math.max(1,interval),options.signal);
+  }
+}
