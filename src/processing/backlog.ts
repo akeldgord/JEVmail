@@ -24,7 +24,9 @@ export class BacklogManager{
     let processed=job.processed,failed=job.failed,blocked=false;
     for(const message of candidates){const outcome=await this.processor.processMessage(message.id);if(outcome==='deferred'||outcome==='failed_transient'){blocked=true;break;}if(outcome==='processed'||outcome==='already_processed')processed++;else{this.repos.backlog.addFailure(jobId,message.id,'permanent',this.now());failedIds.add(message.id);failed++;}}
     const completed=!blocked&&exhausted&&!moreEligibleSeen;
-    this.repos.backlog.update(jobId,{status:completed?'completed':'running',processed,failed,updatedAt:this.now()});return this.requireJob(jobId);
+    const observedTotal=processed+failed;
+    const total=completed?observedTotal:Math.max(job.total,observedTotal);
+    this.repos.backlog.update(jobId,{status:completed?'completed':'running',total,processed,failed,updatedAt:this.now()});return this.requireJob(jobId);
   }
   pauseBacklog(jobId:number){const job=this.requireJob(jobId);if(job.status==='completed'||job.status==='cancelled')return job;this.repos.backlog.update(jobId,{status:'paused',updatedAt:this.now()});return this.requireJob(jobId);}
   resumeBacklog(jobId:number){const job=this.requireJob(jobId);if(job.status!=='paused')return job;this.repos.backlog.update(jobId,{status:'pending',updatedAt:this.now()});return this.requireJob(jobId);}
