@@ -3,7 +3,7 @@ import type { ClassificationTaxonomy } from '../domain/taxonomy.ts';
 import { validateTaxonomy } from '../domain/taxonomy.ts';
 import { fetchMessageContext, serializeContextForClassifier, type MessageContext } from '../gmail/context-builder.ts';
 import type { GmailClient, GmailMessage } from '../gmail/types.ts';
-import { classifyOperationalError, requiresGmailReconnect } from './retry-policy.ts';
+import { classifyOperationalError, describeOperationalError, isGmailQuotaError, requiresGmailReconnect } from './retry-policy.ts';
 import type { RateGovernor } from './limiter.ts';
 
 export type ProcessOutcome = 'processed' | 'already_processed' | 'deferred' | 'failed_permanent' | 'failed_transient';
@@ -173,7 +173,7 @@ export class MessageProcessor {
           processedAt: this.now(),
         });
       } catch {
-        this.repos.error?.add({stage:'audit',category:'audit_write',messageId,createdAt:this.now()});
+        this.repos.error?.add({stage:'audit',category:'audit_write',provider:'app',status:null,detail:'audit write failed',messageId,createdAt:this.now()});
         // Gmail's hidden processed marker is the durable completion boundary.
         // Audit loss is observable but must never cause paid reclassification.
       }
@@ -182,7 +182,9 @@ export class MessageProcessor {
       const reconnect=requiresGmailReconnect(error);
       if(reconnect)this.repos.installation.patch?.({needsReconnect:true});
       const disposition=error instanceof PermanentProcessingError?'permanent':classifyOperationalError(error);
-      this.repos.error?.add({stage:'process_message',category:reconnect?'gmail_auth':disposition,messageId,createdAt:this.now()});
+      const details=describeOperationalError(error);
+      const category=reconnect?'gmail_auth':details.provider==='classifier'?'classifier':isGmailQuotaError(error)?'gmail_quota':disposition;
+      this.repos.error?.add({stage:'process_message',category,provider:details.provider,status:details.status,detail:details.detail,messageId,createdAt:this.now()});
       return disposition === 'transient' ? 'failed_transient' : 'failed_permanent';
     }
   }
