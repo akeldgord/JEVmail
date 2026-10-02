@@ -391,7 +391,7 @@ The spend ceiling is enforced only when reliable provider cost metadata is avail
 
 When a minute, hour, day, or spend limit is reached, JEVmail records the reason and reset time, shows the waiting state in the Processing page, and resumes automatically after the window resets. Backlog jobs use concurrent chunks controlled by `BACKLOG_CONCURRENCY` (default `8`).
 
-Gmail is still the practical ceiling for backlog throughput. Its per-user API quota is much lower than Jev's classifier capacity, so increasing concurrency beyond the default will not produce unlimited throughput and can trigger Gmail quota backpressure.
+Gmail is still the practical ceiling for backlog throughput. Gmail's per-user quota is 6,000 units/minute, and this workflow is roughly 190 units/message, so practical throughput is about 30 messages/minute before Gmail backpressure becomes the limiting factor. Increasing concurrency beyond the default will not produce unlimited throughput.
 
 ---
 
