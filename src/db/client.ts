@@ -22,6 +22,7 @@ function ensureProcessingErrorColumns(db:AppDatabase){
     ['provider','TEXT'],
     ['status','INTEGER'],
     ['detail','TEXT'],
+    ['config_hash','TEXT'],
   ];
   for(const [name,type] of additions){
     if(!existing.has(name)) db.exec(`ALTER TABLE processing_errors ADD COLUMN ${name} ${type}`);
