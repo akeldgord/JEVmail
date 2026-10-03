@@ -41,7 +41,7 @@ describe('dashboard components',()=>{
     taxonomy.labels.push({id:'custom_ui',displayName:'Custom UI',description:'x',guidance:'x',enabled:false,priority:500,semanticRole:'standard',gmailLabelName:'JEVmail/Custom UI',gmailLabelId:'G_custom_ui'});
     const gmailLabels=taxonomy.labels.map(label=>({id:label.gmailLabelId!,name:label.gmailLabelName}));
     render(<TaxonomyEditor taxonomy={taxonomy} gmailLabels={gmailLabels} budget={{criteriaJsonChars:1842,enabledLabelCount:13}}/>);
-    expect(screen.getByText('Add category')).toBeTruthy();
+    expect(screen.getByRole('heading',{name:'Add category'})).toBeTruthy();
     expect(screen.getAllByText(/Prompt budget:/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Delete category')).toHaveLength(1);
   });
