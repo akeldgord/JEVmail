@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addLabelWithApp,deleteLabelWithApp,saveLabelWithApp } from '../../../src/app/dashboard/labels/actions.ts';
-import { saveClassifierWithApp } from '../../../src/app/dashboard/classifier/actions.ts';
+import { addLabelWithApp,deleteLabelWithApp,saveLabelWithApp,saveClassifierWithApp } from '../../../src/services/classifier-config-editor.ts';
 import { DEFAULT_GLOBAL_INSTRUCTIONS,DEFAULT_TAXONOMY } from '../../../src/domain/defaults.ts';
 import { MessageProcessor } from '../../../src/processing/processor.ts';
 
