@@ -31,8 +31,8 @@ function fd(values:Record<string,string>){const f=new FormData();for(const [k,v]
 test('label edit rejects over-budget guidance and leaves active config unchanged',async()=>{
   const h=makeApp();const before=h.active;
   await assert.rejects(()=>saveLabelWithApp(h.app,fd({
-    labelId:'radiology_medicine',displayName:'Radiology / Medicine',guidance:'x'.repeat(500),
-    enabled:'on',gmailLabelId:'G_radiology_medicine'
+    labelId:'newsletter_subscription',displayName:'Newsletter / Subscription',guidance:'x'.repeat(500),
+    enabled:'on',gmailLabelId:'G_newsletter_subscription'
   })),/per-label budget/i);
   assert.equal(h.saves.length,0);assert.equal(h.active,before);
 });
@@ -79,7 +79,7 @@ test('custom categories require disable before delete and default categories can
   t.labels.push({id:'custom_delete',displayName:'Custom Delete',description:'x',guidance:'x',enabled:true,priority:500,semanticRole:'standard',gmailLabelName:'JEVmail/Custom Delete',gmailLabelId:'G_custom_delete'});
   const h=makeApp(t);
   await assert.rejects(()=>deleteLabelWithApp(h.app,fd({labelId:'custom_delete'})),/disable/i);
-  await assert.rejects(()=>deleteLabelWithApp(h.app,fd({labelId:'radiology_medicine'})),/cannot be deleted/i);
+  await assert.rejects(()=>deleteLabelWithApp(h.app,fd({labelId:'newsletter_subscription'})),/cannot be deleted/i);
   const active=JSON.parse(h.active.taxonomyJson);active.labels.find((x:any)=>x.id==='custom_delete').enabled=false;
   h.app.repos.config.getActive=()=>({...h.active,taxonomyJson:JSON.stringify(active)});
   await deleteLabelWithApp(h.app,fd({labelId:'custom_delete'}));
