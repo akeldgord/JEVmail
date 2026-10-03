@@ -190,3 +190,30 @@ test('Gmail scope 403 triggers reconnect and diagnostic detail includes status a
   assert.match(details.detail,/HTTP 403/);
   assert.match(details.detail,/insufficientPermissions/);
 });
+
+
+test('forced over-budget config still classifies and records one warning per config hash',async()=>{
+  const h=makeHarness();
+  let state:any={processedLabelId:'processed',paused:false,needsReconnect:false};
+  const warnings:any[]=[];
+  const originalGetActive=(h.processor as any).repos.config.getActive.bind((h.processor as any).repos.config);
+  const active=originalGetActive();
+  const oversized={...active,globalInstructions:'z'.repeat(5000)};
+  (h.processor as any).repos.config.getActive=()=>oversized;
+  (h.processor as any).repos.config.get=(hash:string)=>hash===oversized.hash?oversized:null;
+  (h.processor as any).repos.installation={get(){return state;},patch(x:any){state={...state,...x};}};
+  (h.processor as any).repos.error={
+    add(x:any){warnings.push(x);},
+    hasConfigWarning(hash:string,category:string){return warnings.some(w=>w.configHash===hash&&w.category===category);}
+  };
+  assert.equal(await h.processor.processMessage('m1'),'processed');
+  assert.equal(h.classifierCalls,1);
+  assert.equal(warnings.filter(w=>w.category==='prompt_budget').length,1);
+
+  h.labels.delete('processed');
+  h.labels.delete('gmail-reply_needed');
+  h.attempts.delete('m1');
+  assert.equal(await h.processor.processMessage('m1'),'processed');
+  assert.equal(h.classifierCalls,2);
+  assert.equal(warnings.filter(w=>w.category==='prompt_budget').length,1);
+});
