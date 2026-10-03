@@ -22,7 +22,7 @@ function requireValidConfig(taxonomy:ClassificationTaxonomy,globalInstructions:s
   return budget;
 }
 
-function saveSnapshot(app:any,active:any,taxonomy:ClassificationTaxonomy){
+async function saveSnapshot(app:any,active:any,taxonomy:ClassificationTaxonomy){
   requireValidConfig(taxonomy,active.globalInstructions);
   const snapshot={provider:active.provider,model:active.model,globalInstructions:active.globalInstructions,taxonomy};
   const hash=hashClassifierConfig(snapshot);
@@ -35,13 +35,10 @@ function saveSnapshot(app:any,active:any,taxonomy:ClassificationTaxonomy){
     createdAt:Date.now(),
     active:true
   });
-  revalidatePath('/dashboard/labels');
-  revalidatePath('/dashboard/classifier');
   return hash;
 }
 
-export async function saveLabelAction(formData:FormData){
-  const app=await requireOperationalApp();
+export async function saveLabelWithApp(app:any,formData:FormData){
   const active=app.repos.config.getActive();
   if(!active)throw new Error('active classifier config missing');
   const taxonomy=JSON.parse(active.taxonomyJson) as ClassificationTaxonomy;
@@ -58,11 +55,10 @@ export async function saveLabelAction(formData:FormData){
   if(!mapped||mapped.type==='system'||isGmailSystemLabelId(mapped.id))throw new Error('Classification labels must map to Gmail user labels, not system labels.');
   label.gmailLabelId=mapped.id;
   label.gmailLabelName=mapped.name;
-  saveSnapshot(app,active,taxonomy);
+  return saveSnapshot(app,active,taxonomy);
 }
 
-export async function addLabelAction(formData:FormData){
-  const app=await requireOperationalApp();
+export async function addLabelWithApp(app:any,formData:FormData){
   const active=app.repos.config.getActive();
   if(!active)throw new Error('active classifier config missing');
   const taxonomy=JSON.parse(active.taxonomyJson) as ClassificationTaxonomy;
@@ -100,11 +96,10 @@ export async function addLabelAction(formData:FormData){
     label.gmailLabelId=mapping[id];
   }
 
-  saveSnapshot(app,active,taxonomy);
+  return saveSnapshot(app,active,taxonomy);
 }
 
-export async function deleteLabelAction(formData:FormData){
-  const app=await requireOperationalApp();
+export async function deleteLabelWithApp(app:any,formData:FormData){
   const active=app.repos.config.getActive();
   if(!active)throw new Error('active classifier config missing');
   const taxonomy=JSON.parse(active.taxonomyJson) as ClassificationTaxonomy;
@@ -114,5 +109,9 @@ export async function deleteLabelAction(formData:FormData){
   if(DEFAULT_IDS.has(id)||PROTECTED_ROLES.has(label.semanticRole))throw new Error('Default and protected categories cannot be deleted.');
   if(label.enabled)throw new Error('Disable this category first, then delete it.');
   taxonomy.labels=taxonomy.labels.filter(item=>item.id!==id);
-  saveSnapshot(app,active,taxonomy);
+  return saveSnapshot(app,active,taxonomy);
 }
+
+export async function saveLabelAction(formData:FormData){const app=await requireOperationalApp();await saveLabelWithApp(app,formData);revalidatePath('/dashboard/labels');revalidatePath('/dashboard/classifier');}
+export async function addLabelAction(formData:FormData){const app=await requireOperationalApp();await addLabelWithApp(app,formData);revalidatePath('/dashboard/labels');revalidatePath('/dashboard/classifier');}
+export async function deleteLabelAction(formData:FormData){const app=await requireOperationalApp();await deleteLabelWithApp(app,formData);revalidatePath('/dashboard/labels');revalidatePath('/dashboard/classifier');}
