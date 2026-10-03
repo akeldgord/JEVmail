@@ -3,11 +3,22 @@ import assert from 'node:assert/strict';
 import { mergeDefaultTaxonomy } from '../../../src/services/setup-service.ts';
 import { DEFAULT_GLOBAL_INSTRUCTIONS,DEFAULT_TAXONOMY } from '../../../src/domain/defaults.ts';
 
+const FUTURE_DEFAULT={
+  id:'future_default',displayName:'Future Default',description:'A future upstream default category.',
+  guidance:'Use for the future default fixture.',enabled:true,priority:85,semanticRole:'standard' as const,
+  gmailLabelName:'JEVmail/Future Default'
+};
+
 function oldTaxonomy(){
   const t=structuredClone(DEFAULT_TAXONOMY);
-  t.labels=t.labels.filter(label=>label.id!=='radiology_medicine');
   for(const label of t.labels)label.gmailLabelId=`G_${label.id}`;
   t.labels.find(label=>label.id==='newsletter_subscription')!.guidance='USER CUSTOM GUIDANCE';
+  return t;
+}
+
+function defaultsWithFuture(){
+  const t=structuredClone(DEFAULT_TAXONOMY);
+  t.labels.splice(t.labels.length-1,0,structuredClone(FUTURE_DEFAULT));
   return t;
 }
 
@@ -16,14 +27,8 @@ function harness(taxonomy:any){
   const saves:any[]=[];const created:any[]=[];let listCalls=0;const warnings:any[]=[];
   const gmailLabels=taxonomy.labels.map((label:any)=>({id:label.gmailLabelId,name:label.gmailLabelName,type:'user'}));
   const repos:any={
-    config:{
-      getActive(){return active;},
-      save(x:any){saves.push(x);active={...x};}
-    },
-    error:{
-      add(x:any){warnings.push(x);},
-      hasConfigWarning(hash:string,category:string){return warnings.some(w=>w.configHash===hash&&w.category===category);}
-    }
+    config:{getActive(){return active;},save(x:any){saves.push(x);active={...x};}},
+    error:{add(x:any){warnings.push(x);},hasConfigWarning(hash:string,category:string){return warnings.some(w=>w.configHash===hash&&w.category===category);}}
   };
   const gmail:any={
     async listLabels(){listCalls++;return gmailLabels;},
@@ -32,27 +37,28 @@ function harness(taxonomy:any){
   return{repos,gmail,saves,created,warnings,get active(){return active;},get listCalls(){return listCalls;}};
 }
 
-test('existing 12-label install merges new default while preserving user edits exactly',async()=>{
+test('existing install merges a newly shipped default while preserving user edits exactly',async()=>{
   const t=oldTaxonomy();
   const beforeNewsletter=structuredClone(t.labels.find((x:any)=>x.id==='newsletter_subscription'));
   const h=harness(t);
-  const result=await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:100});
-  assert.deepEqual(result.added,['radiology_medicine']);
+  const result=await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:100,defaults:defaultsWithFuture()});
+  assert.deepEqual(result.added,['future_default']);
   assert.deepEqual(result.pending,[]);
   assert.equal(h.created.length,1);
-  assert.equal(h.created[0].name,'JEVmail/Radiology - Medicine');
+  assert.equal(h.created[0].name,'JEVmail/Future Default');
   assert.equal(h.saves.length,1);
   const merged=JSON.parse(h.active.taxonomyJson);
-  assert.equal(merged.labels.length,DEFAULT_TAXONOMY.labels.length);
+  assert.equal(merged.labels.length,DEFAULT_TAXONOMY.labels.length+1);
   assert.deepEqual(merged.labels.find((x:any)=>x.id==='newsletter_subscription'),beforeNewsletter);
-  assert.ok(merged.labels.find((x:any)=>x.id==='radiology_medicine')?.gmailLabelId);
+  assert.ok(merged.labels.find((x:any)=>x.id==='future_default')?.gmailLabelId);
 });
 
 test('second default merge is idempotent with zero Gmail and config writes',async()=>{
   const h=harness(oldTaxonomy());
-  await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:100});
+  const defaults=defaultsWithFuture();
+  await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:100,defaults});
   const firstLists=h.listCalls;const firstCreates=h.created.length;const firstSaves=h.saves.length;
-  const second=await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:101});
+  const second=await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:101,defaults});
   assert.deepEqual(second.added,[]);
   assert.deepEqual(second.pending,[]);
   assert.equal(h.listCalls,firstLists);
@@ -70,9 +76,9 @@ test('budget-full default merge leaves pending category visible and performs no 
     });n++;
   }
   const h=harness(t);
-  const result=await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:200});
+  const result=await mergeDefaultTaxonomy({gmail:h.gmail,repos:h.repos,now:200,defaults:defaultsWithFuture()});
   assert.deepEqual(result.added,[]);
-  assert.deepEqual(result.pending,['radiology_medicine']);
+  assert.deepEqual(result.pending,['future_default']);
   assert.equal(h.created.length,0);
   assert.equal(h.listCalls,0);
   assert.equal(h.saves.length,0);
