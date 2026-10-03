@@ -51,7 +51,7 @@ export async function saveLabelWithApp(app:any,formData:FormData){
   label.enabled=protectedRole?true:formData.get('enabled')==='on';
   const gmailLabelId=String(formData.get('gmailLabelId')??'');
   const gmailLabels=await app.gmail.listLabels();
-  const mapped=gmailLabels.find(l=>l.id===gmailLabelId);
+  const mapped=gmailLabels.find((l:any)=>l.id===gmailLabelId);
   if(!mapped||mapped.type==='system'||isGmailSystemLabelId(mapped.id))throw new Error('Classification labels must map to Gmail user labels, not system labels.');
   label.gmailLabelId=mapped.id;
   label.gmailLabelName=mapped.name;
@@ -87,7 +87,7 @@ export async function addLabelWithApp(app:any,formData:FormData){
   const requestedGmailId=String(formData.get('gmailLabelId')??'').trim();
   if(requestedGmailId){
     const gmailLabels=await app.gmail.listLabels();
-    const mapped=gmailLabels.find(item=>item.id===requestedGmailId);
+    const mapped=gmailLabels.find((item:any)=>item.id===requestedGmailId);
     if(!mapped||mapped.type==='system'||isGmailSystemLabelId(mapped.id))throw new Error('Classification labels must map to Gmail user labels, not system labels.');
     label.gmailLabelId=mapped.id;
     label.gmailLabelName=mapped.name;
