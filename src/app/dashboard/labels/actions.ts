@@ -1,3 +1,20 @@
 'use server';
-import { revalidatePath } from 'next/cache';import { requireOperationalApp } from '../../../auth/dashboard-auth.ts';import type { ClassificationTaxonomy } from '../../../domain/taxonomy.ts';import { validateTaxonomy } from '../../../domain/taxonomy.ts';import { hashClassifierConfig } from '../../../domain/config-version.ts';
-export async function saveLabelAction(formData:FormData){const app=await requireOperationalApp();const active=app.repos.config.getActive();if(!active)throw new Error('active classifier config missing');const taxonomy=JSON.parse(active.taxonomyJson) as ClassificationTaxonomy;const id=String(formData.get('labelId')??'');const label=taxonomy.labels.find(l=>l.id===id);if(!label)throw new Error('unknown label');label.displayName=String(formData.get('displayName')??'').trim();label.guidance=String(formData.get('guidance')??'').trim();const protectedRole=['reply_needed','action_needed','indeterminate'].includes(label.semanticRole);label.enabled=protectedRole?true:formData.get('enabled')==='on';const gmailLabelId=String(formData.get('gmailLabelId')??'');const gmailLabels=await app.gmail.listLabels();const mapped=gmailLabels.find(l=>l.id===gmailLabelId);if(!mapped||mapped.type==='system')throw new Error('Classification labels must map to Gmail user labels, not system labels.');label.gmailLabelId=mapped.id;label.gmailLabelName=mapped.name;const v=validateTaxonomy(taxonomy);if(!v.ok)throw new Error(v.errors.join('; '));const snapshot={provider:active.provider,model:active.model,globalInstructions:active.globalInstructions,taxonomy};const hash=hashClassifierConfig(snapshot);app.repos.config.save({hash,provider:snapshot.provider,model:snapshot.model,globalInstructions:snapshot.globalInstructions,taxonomyJson:JSON.stringify(taxonomy),createdAt:Date.now(),active:true});revalidatePath('/dashboard/labels');revalidatePath('/dashboard/classifier');}
+import { revalidatePath } from 'next/cache';
+import { requireOperationalApp } from '../../../auth/dashboard-auth.ts';
+import { addLabelWithApp,deleteLabelWithApp,saveLabelWithApp } from '../../../services/classifier-config-editor.ts';
+
+export type ConfigActionState={ok:boolean;error?:string};
+function failure(error:unknown):ConfigActionState{return{ok:false,error:error instanceof Error?error.message:'Configuration update failed.'};}
+
+export async function saveLabelAction(_previous:ConfigActionState,formData:FormData):Promise<ConfigActionState>{
+  try{const app=await requireOperationalApp();await saveLabelWithApp(app,formData);revalidatePath('/dashboard/labels');revalidatePath('/dashboard/classifier');return{ok:true};}
+  catch(error){return failure(error);}
+}
+export async function addLabelAction(_previous:ConfigActionState,formData:FormData):Promise<ConfigActionState>{
+  try{const app=await requireOperationalApp();await addLabelWithApp(app,formData);revalidatePath('/dashboard/labels');revalidatePath('/dashboard/classifier');return{ok:true};}
+  catch(error){return failure(error);}
+}
+export async function deleteLabelAction(_previous:ConfigActionState,formData:FormData):Promise<ConfigActionState>{
+  try{const app=await requireOperationalApp();await deleteLabelWithApp(app,formData);revalidatePath('/dashboard/labels');revalidatePath('/dashboard/classifier');return{ok:true};}
+  catch(error){return failure(error);}
+}

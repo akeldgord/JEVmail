@@ -1,6 +1,6 @@
 {
   "name": "jevmail",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,7 +18,8 @@
     "test:ui": "vitest run tests/unit/ui/dashboard.test.tsx",
     "preflight": "node --experimental-strip-types scripts/preflight.mjs",
     "prestart": "npm run preflight",
-    "preworker": "npm run preflight"
+    "preworker": "npm run preflight",
+    "probe:prompt-limits": "node scripts/probe-prompt-limits.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.5",
