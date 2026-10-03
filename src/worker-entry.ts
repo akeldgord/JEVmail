@@ -3,15 +3,18 @@ import { getRuntimeRepositories } from './db/runtime.ts';
 import { createRuntimeApp } from './services/runtime-app.ts';
 import { PollingService } from './processing/polling.ts';
 import { ConfiguredWorkerService, WorkerCycle,runWorker } from './processing/worker.ts';
+import { mergeDefaultTaxonomy } from './services/setup-service.ts';
 
 const env=requireEnv();
 const repos=getRuntimeRepositories();
+let defaultsChecked=false;
 const service=new ConfiguredWorkerService({
   repos,
   createCycle(){
     const app=createRuntimeApp();
     const polling=new PollingService({gmail:app.gmail,repos:app.repos,processor:app.processor});
-    return new WorkerCycle({polling,backlog:app.backlog,repos:app.repos});
+    const cycle=new WorkerCycle({polling,backlog:app.backlog,repos:app.repos});
+    return{async pollOnce(){if(!defaultsChecked){await mergeDefaultTaxonomy({gmail:app.gmail,repos:app.repos});defaultsChecked=true;}return cycle.pollOnce();}};
   }
 });
 const controller=new AbortController();
