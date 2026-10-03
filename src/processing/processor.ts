@@ -1,4 +1,5 @@
 import type { Classifier, ClassificationResult } from '../classifier/types.ts';
+import { validatePromptBudget } from '../classifier/prompt-builder.ts';
 import type { ClassificationTaxonomy } from '../domain/taxonomy.ts';
 import { validateTaxonomy } from '../domain/taxonomy.ts';
 import { fetchMessageContext, serializeContextForClassifier, type MessageContext } from '../gmail/context-builder.ts';
@@ -33,7 +34,7 @@ type ProcessorRepositories = {
   config: { getActive(): ConfigSnapshot | null; get(hash: string): ConfigSnapshot | null };
   attempt: { getSuccessful(messageId: string): SuccessfulAttempt | null; saveSuccess(value: SuccessfulAttempt): void };
   audit: { complete(value: any): void };
-  error?: { add(value:any):void };
+  error?: { add(value:any):void; hasConfigWarning?(configHash:string,category?:string):boolean };
 };
 
 type Governor = Pick<RateGovernor, 'canStart' | 'recordUsage'>;
@@ -127,6 +128,19 @@ export class MessageProcessor {
         }
         const installationState=this.repos.installation.get();
         if(installationState?.deferReason||installationState?.deferUntil)this.repos.installation.patch?.({deferReason:null,deferUntil:null});
+        const budget=validatePromptBudget(taxonomy,config.globalInstructions);
+        if(!budget.ok&&!this.repos.error?.hasConfigWarning?.(config.hash,'prompt_budget')){
+          this.repos.error?.add({
+            stage:'classifier_config',
+            category:'prompt_budget',
+            provider:config.provider,
+            status:null,
+            detail:`${budget.errors.join(' ')} Criteria: ${budget.sizes.criteriaJsonChars}/8000; instructions: ${budget.sizes.instructionsChars}/4000; enabled labels: ${budget.sizes.enabledLabelCount}/20. Classification will continue with deterministic truncation.`,
+            configHash:config.hash,
+            messageId:null,
+            createdAt:this.now()
+          });
+        }
         context = await this.loadContext(this.gmail, messageId);
         const serializedState = serializeContextForClassifier(context, this.maxClassifierStateChars);
         result = await this.classifier.classify({
