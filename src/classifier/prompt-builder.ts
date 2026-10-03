@@ -1,6 +1,7 @@
 import type { ClassificationLabel, ClassificationTaxonomy } from '../domain/taxonomy.ts';
 import { enabledLabels } from '../domain/taxonomy.ts';
 
+// Bounds are JEVmail application guardrails. Provider schema evidence and the credentialed probe live in docs/PROMPT-LIMITS.md.
 export const MAX_ENABLED_LABELS=20;
 export const CRITERIA_BUDGET_CHARS=8000;
 export const CRITERION_MAX_CHARS=240;
@@ -80,20 +81,20 @@ export function validatePromptBudget(taxonomy:ClassificationTaxonomy,globalInstr
 export function prepareJevQuestion(taxonomy:ClassificationTaxonomy,globalInstructions:string):PreparedJevQuestion{
   const allLabels=enabledLabels(taxonomy);
   const warnings:string[]=[];
-  let labels=allLabels.slice(0,MAX_ENABLED_LABELS);
-  if(allLabels.length>MAX_ENABLED_LABELS)warnings.push(`Enabled label count ${allLabels.length} exceeds ${MAX_ENABLED_LABELS}; only the highest-priority ${MAX_ENABLED_LABELS} labels were sent.`);
+  let labels=allLabels;
+  if(allLabels.length>MAX_ENABLED_LABELS){
+    const indeterminate=allLabels.find(label=>label.semanticRole==='indeterminate');
+    labels=allLabels.slice(0,MAX_ENABLED_LABELS);
+    if(indeterminate&&!labels.some(label=>label.id===indeterminate.id))labels=[...allLabels.slice(0,MAX_ENABLED_LABELS-1),indeterminate];
+    warnings.push(`Enabled label count ${allLabels.length} exceeds ${MAX_ENABLED_LABELS}; only ${MAX_ENABLED_LABELS} labels were sent, preserving protected fallback roles.`);
+  }
   for(const label of labels){
     const raw=fullCriterionText(label);
     if(raw.length>CRITERION_MAX_CHARS)warnings.push(`${label.displayName} criterion was truncated from ${raw.length} to ${CRITERION_MAX_CHARS} chars.`);
   }
-  let criteria=criteriaFor(labels);
-  while(labels.length>2&&JSON.stringify(criteria).length>CRITERIA_BUDGET_CHARS){
-    labels=labels.slice(0,-1);
-    criteria=criteriaFor(labels);
-  }
+  const criteria=criteriaFor(labels);
   const criteriaChars=JSON.stringify(criteria).length;
-  if(criteriaChars>CRITERIA_BUDGET_CHARS)warnings.push(`Criteria JSON remains ${criteriaChars} chars after deterministic truncation; provider limits may still reject it.`);
-  else if(labels.length<Math.min(allLabels.length,MAX_ENABLED_LABELS))warnings.push(`Criteria exceeded ${CRITERIA_BUDGET_CHARS} chars; lowest-priority labels were omitted for this request.`);
+  if(criteriaChars>CRITERIA_BUDGET_CHARS)warnings.push(`Criteria JSON remains ${criteriaChars} chars after deterministic per-criterion truncation; provider limits may still reject it.`);
   const fullInstructions=instructionText(globalInstructions);
   const instructions=fullInstructions.slice(0,INSTRUCTIONS_MAX_CHARS);
   if(fullInstructions.length>INSTRUCTIONS_MAX_CHARS)warnings.push(`Classifier instructions were truncated from ${fullInstructions.length} to ${INSTRUCTIONS_MAX_CHARS} chars.`);
