@@ -14,7 +14,7 @@ const service=new ConfiguredWorkerService({
     const app=createRuntimeApp();
     const polling=new PollingService({gmail:app.gmail,repos:app.repos,processor:app.processor});
     const cycle=new WorkerCycle({polling,backlog:app.backlog,repos:app.repos});
-    return{async pollOnce(){if(!defaultsChecked){await mergeDefaultTaxonomy({gmail:app.gmail,repos:app.repos});defaultsChecked=true;}return cycle.pollOnce();}};
+    return{async pollOnce(){if(!defaultsChecked){const merge=await mergeDefaultTaxonomy({gmail:app.gmail,repos:app.repos});defaultsChecked=merge.pending.length===0;}return cycle.pollOnce();}};
   }
 });
 const controller=new AbortController();
