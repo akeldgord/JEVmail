@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { addLabelWithApp,deleteLabelWithApp,saveLabelWithApp } from '../../../src/app/dashboard/labels/actions.ts';
 import { saveClassifierWithApp } from '../../../src/app/dashboard/classifier/actions.ts';
 import { DEFAULT_GLOBAL_INSTRUCTIONS,DEFAULT_TAXONOMY } from '../../../src/domain/defaults.ts';
+import { MessageProcessor } from '../../../src/processing/processor.ts';
 
 function configuredTaxonomy(){
   const t=structuredClone(DEFAULT_TAXONOMY);
@@ -85,4 +86,41 @@ test('custom categories require disable before delete and default categories can
   await deleteLabelWithApp(h.app,fd({labelId:'custom_delete'}));
   const saved=JSON.parse(h.saves.at(-1).taxonomyJson);
   assert.equal(saved.labels.some((x:any)=>x.id==='custom_delete'),false);
+});
+
+
+test('newly added category can classify the very next unprocessed message without restart',async()=>{
+  const h=makeApp();
+  await addLabelWithApp(h.app,fd({
+    id:'client_mail',displayName:'Client Mail',description:'Client correspondence',guidance:'Use for established client correspondence.'
+  }));
+  const labels=new Set<string>(['INBOX']);
+  const attempts=new Map<string,any>();
+  const audits:any[]=[];
+  const config=h.active;
+  const taxonomy=JSON.parse(config.taxonomyJson);
+  const added=taxonomy.labels.find((x:any)=>x.id==='client_mail');
+  assert.ok(added?.gmailLabelId);
+
+  const gmail:any={
+    async getMessage(id:string){return{id,threadId:'t1',labelIds:[...labels],internalDate:1};},
+    async modifyMessage(_id:string,add:string[],remove:string[]=[]){for(const x of remove)labels.delete(x);for(const x of add)labels.add(x);}
+  };
+  const repos:any={
+    installation:{get(){return{processedLabelId:'processed',paused:false,needsReconnect:false};},patch(){}},
+    config:{getActive(){return config;},get(hash:string){return hash===config.hash?config:null;}},
+    attempt:{getSuccessful(id:string){return attempts.get(id)??null;},saveSuccess(x:any){attempts.set(x.messageId,x);}},
+    audit:{complete(x:any){audits.push(x);}},
+    error:{add(){},hasConfigWarning(){return false;}}
+  };
+  const classifier:any={async classify(req:any){return{labelId:'client_mail',probabilities:{client_mail:1},confidence:1,provider:'jev',model:req.model,usage:{input_tokens:5},configHash:req.configHash,idempotencyKey:'k'};}};
+  const governor:any={async canStart(){return{allowed:true,counts:{minute:0,hour:0,day:0},spend:{status:'not_configured'}};},async recordUsage(){}};
+  const processor=new MessageProcessor({
+    gmail,classifier,repos,governor,now:()=>100,
+    loadContext:async()=>({current:{id:'m1',threadId:'t1',internalDate:1,timestampMs:1,labelIds:[],sender:'client@example.com',recipients:['me@example.com'],subject:'Client',body:'Update',attachments:[]},prior:[]})
+  });
+  assert.equal(await processor.processMessage('m1'),'processed');
+  assert.equal(labels.has(added.gmailLabelId),true);
+  assert.equal(labels.has('processed'),true);
+  assert.equal(audits[0].labelId,'client_mail');
 });
