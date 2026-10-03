@@ -28,8 +28,7 @@ function smartSlice(value:string,max:number){
 export function fullCriterionText(label:ClassificationLabel){
   const display=clean(label.displayName);
   const guidance=clean(label.guidance);
-  const description=clean(label.description);
-  return [`${display}:`,guidance,description].filter(Boolean).join(' ');
+  return [`${display}:`,guidance].filter(Boolean).join(' ');
 }
 
 export function buildCriterionText(label:ClassificationLabel){
