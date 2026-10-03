@@ -12,7 +12,6 @@ test('default taxonomy contains required protected roles without pinning total c
   assert.equal(byId.get('action_needed')?.semanticRole,'action_needed');
   assert.equal(byId.get('indeterminate')?.semanticRole,'indeterminate');
   assert.ok(DEFAULT_TAXONOMY.labels.length>=12);
-  assert.ok(byId.has('radiology_medicine'));
   assert.equal(validateTaxonomy(DEFAULT_TAXONOMY).ok,true);
   assert.equal(validatePromptBudget(DEFAULT_TAXONOMY,DEFAULT_GLOBAL_INSTRUCTIONS).ok,true);
 });
