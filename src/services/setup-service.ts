@@ -46,13 +46,14 @@ export async function ensureInstallationSetup(args:{email:string;gmail:GmailClie
   return {configHash:hash,processedLabelId:processed.id};
 }
 
-export async function mergeDefaultTaxonomy(args:{gmail:GmailClient;repos:any;now?:number}){
+export async function mergeDefaultTaxonomy(args:{gmail:GmailClient;repos:any;now?:number;defaults?:ClassificationTaxonomy}){
   const now=args.now??Date.now();
   const active=args.repos.config.getActive();
   if(!active)return {added:[] as string[],pending:[] as string[],configHash:null};
   const taxonomy=JSON.parse(active.taxonomyJson) as ClassificationTaxonomy;
+  const defaults=args.defaults??DEFAULT_TAXONOMY;
   const existingIds=new Set(taxonomy.labels.map(label=>label.id));
-  const missing=DEFAULT_TAXONOMY.labels
+  const missing=defaults.labels
     .filter(label=>!existingIds.has(label.id))
     .toSorted((a,b)=>a.priority-b.priority);
   if(!missing.length)return {added:[] as string[],pending:[] as string[],configHash:active.hash};
