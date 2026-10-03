@@ -9,7 +9,6 @@ test('builds one bounded choice question from enabled stable ids with precedence
   assert.equal(Object.keys(q.criteria).length,DEFAULT_TAXONOMY.labels.filter(x=>x.enabled).length);
   assert.ok('reply_needed' in q.criteria);
   assert.ok('indeterminate' in q.criteria);
-  assert.ok('radiology_medicine' in q.criteria);
   assert.match(q.instructions,/Reply Needed/i);
   assert.match(q.instructions,/Action Needed/i);
   assert.ok(JSON.stringify(q.criteria).length<=CRITERIA_BUDGET_CHARS);
@@ -25,12 +24,14 @@ test('disabled labels are absent but indeterminate remains',()=>{
 
 test('guidance-first truncation preserves decisive guidance tail',()=>{
   const t=structuredClone(DEFAULT_TAXONOMY);
-  const label=t.labels.find(x=>x.id==='radiology_medicine')!;
-  label.guidance='x'.repeat(CRITERION_MAX_CHARS)+' DECISIVE_TAIL_PHRASE';
-  label.description='STATIC DESCRIPTION SHOULD LOSE FIRST';
+  t.labels.splice(t.labels.length-1,0,{
+    id:'custom_guidance',displayName:'Custom Guidance',description:'STATIC DESCRIPTION SHOULD LOSE FIRST',
+    guidance:'x'.repeat(CRITERION_MAX_CHARS)+' DECISIVE_TAIL_PHRASE',
+    enabled:true,priority:500,semanticRole:'standard',gmailLabelName:'JEVmail/Custom Guidance'
+  });
   const prepared=prepareJevQuestion(t,DEFAULT_GLOBAL_INSTRUCTIONS);
-  assert.match(prepared.question.criteria.radiology_medicine,/DECISIVE_TAIL_PHRASE/);
-  assert.doesNotMatch(prepared.question.criteria.radiology_medicine,/STATIC DESCRIPTION SHOULD LOSE FIRST/);
+  assert.match(prepared.question.criteria.custom_guidance,/DECISIVE_TAIL_PHRASE/);
+  assert.doesNotMatch(prepared.question.criteria.custom_guidance,/STATIC DESCRIPTION SHOULD LOSE FIRST/);
   assert.ok(prepared.warnings.some(w=>/truncated/.test(w)));
 });
 
